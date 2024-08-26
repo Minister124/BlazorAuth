@@ -1,0 +1,8 @@
+{
+    "name": "WASMCRUD",
+    "version": "1.0.0",
+    "scripts":{
+        "start:api":"dotnet run --project Presentation/API",
+        "watch:ui":"dotnet watch run --project Presentation/Client.UI"
+    }
+}
