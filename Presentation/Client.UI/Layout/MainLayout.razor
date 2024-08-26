@@ -7,16 +7,19 @@
     <MudThemeProvider />
     <MudPopoverProvider />
 
-    @* Needed for dialogs *@
+    @* Needed for dialogs  *@
     <MudDialogProvider />
 
     @* Needed for snackbars *@
     <MudSnackbarProvider />
-    <main>
+    @* <main class="px-4">
         <article>
             @Body
         </article>
-    </main>
+    </main> *@
+    <MudMainContent class="p-6 bg-cyan-400">
+        @Body
+    </MudMainContent>
     <div>
         <Footer/>
     </div>
