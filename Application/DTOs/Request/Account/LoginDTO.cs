@@ -5,7 +5,7 @@ namespace Application.DTOs.Request.Account;
 
 public class LoginDTO
 {
-    [EmailAddress(ErrorMessage ="Not a Valid Email Address"), Required, DataType(DataType.EmailAddress)]
+    [EmailAddress(ErrorMessage = "Not a Valid Email Address"), Required]
     // [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Not a Valid Email Address")]
     [Display(Name = "Email Address")]
     public string EmailAddress { get; set; } = string.Empty;
