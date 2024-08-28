@@ -1,7 +1,10 @@
+using dotenv.net;
+
 using Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+DotEnv.Load();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
