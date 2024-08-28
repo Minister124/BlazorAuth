@@ -12,25 +12,24 @@ if (builder.Environment.IsDevelopment())
     builder.Configuration.AddUserSecrets<Program>();
 }
 
-// Log configuration values
-var connectionString = builder.Configuration.GetConnectionString("Kushal");
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
+/*var connection = builder.Configuration.GetConnectionString("Kushal");
+var key = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+var audience = builder.Configuration["Jwt:Audience"];*/
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole(); // Ensure logging is added
+/*builder.Logging.ClearProviders();
+builder.Logging.AddConsole();*/
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddInfrastructureService(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-app.Logger.LogInformation($"ConnectionString: {connectionString}");
-app.Logger.LogInformation($"JwtKey: {jwtKey}");
-app.Logger.LogInformation($"JwtIssuer: {jwtIssuer}");
-app.Logger.LogInformation($"JwtAudience: {jwtAudience}");
+/*app.Logger.LogInformation($"Connection string: {connection}");
+app.Logger.LogInformation($"Issuer: {issuer}");
+app.Logger.LogInformation($"Key: {key}");
+app.Logger.LogInformation($"Audience: {audience}");*/
 
 if (app.Environment.IsDevelopment())
 {
