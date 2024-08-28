@@ -1,4 +1,4 @@
-using Insfrastructure.DependencyInjection;
+using Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 

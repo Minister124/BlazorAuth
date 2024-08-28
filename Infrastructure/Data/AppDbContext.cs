@@ -2,7 +2,7 @@ using Domain.Entity.Authentication;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Insfrastructure.Data;
+namespace Infrastructure.Data;
 
 public class AppDbContext : IdentityDbContext<ApplicationUser>
 {

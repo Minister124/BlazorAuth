@@ -1,6 +1,6 @@
 using System.Text;
 using Domain.Entity.Authentication;
-using Insfrastructure.Data;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Insfrastructure.DependencyInjection;
+namespace Infrastructure.DependencyInjection;
 
 public static class ServiceContainer
 {
