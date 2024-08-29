@@ -8,7 +8,6 @@ namespace Application.IRepository
     public interface IAccount
     {
         Task CreateAdmin();
-
         Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model);
         Task<LoginResponse> LoginAsync(LoginDTO model);
 

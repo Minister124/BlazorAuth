@@ -1,4 +1,9 @@
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Application.DTOs.Request.Account;
 using Application.DTOs.Response;
 using Application.DTOs.Response.Account;
@@ -6,16 +11,64 @@ using Application.IRepository;
 using Domain.Entity.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Repository
 {
-    public class AccountRepository(
-        RoleManager<IdentityRole> roleManager,
-        UserManager<ApplicationUser> userManager,
-        IConfiguration configuration,
-        SignInManager<ApplicationUser> signInManager
-    ) : IAccount
+    public class AccountRepository : IAccount
     {
+        private readonly IConfiguration _configuration;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+
+        private readonly SignInManager<ApplicationUser> _signInManager;
+
+        public AccountRepository(
+            IConfiguration configuration,
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            SignInManager<ApplicationUser> signInManager
+        )
+        {
+            _configuration = configuration;
+            _userManager = userManager;
+            _roleManager = roleManager;
+            _signInManager = signInManager;
+        }
+
+        private async Task<ApplicationUser> FindUserByEmailAsync(string email) =>
+            await _userManager.FindByEmailAsync(email)
+            ?? throw new InvalidOperationException($"Email {email} not found");
+
+        private async Task<IdentityRole> FindRoleByNameAsync(string roleName) =>
+            await _roleManager.FindByNameAsync(roleName)
+            ?? throw new InvalidOperationException($"Role {roleName} not found");
+        
+        private static string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        private async Task<string> GenerateTokenAsync(ApplicationUser applicationUser)
+        {
+            try
+            {
+                var secuityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+                var credential = new SigningCredentials(secuityKey, SecurityAlgorithms.HmacSha256);
+                var userClaims = new[]
+                {
+                    new Claim(ClaimTypes.Name, applicationUser.UserName ?? "No UserName"),
+                    new Claim(ClaimTypes.Email, applicationUser.Email ?? "No Email"),
+                    new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(applicationUser)).FirstOrDefault() ?? "No Role"),
+                    new Claim("FullName", applicationUser.Name ?? "No FullName")
+                };
+                var token = new JwtSecurityToken(
+                    issuer: _configuration["Jwt:Issuer"],
+                    audience: _configuration["Jwt:Audience"],
+                    claims: userClaims,
+                    expires: DateTime.UtcNow.AddMinutes(30),
+                    signingCredentials: credential
+                );
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            } catch {return null!;}
+        }
         public Task<GeneralResponse> ChangeUserRoleRequestAsync(ChangeUserRoleRequest model)
         {
             throw new NotImplementedException();
@@ -46,9 +99,17 @@ namespace Infrastructure.Repository
             throw new NotImplementedException();
         }
 
-        public Task<LoginResponse> LoginAsync(LoginDTO model)
+        public async Task<LoginResponse> LoginAsync(LoginDTO model)
         {
-            throw new NotImplementedException();
+            var user =  await FindUserByEmailAsync(model.EmailAddress);
+            if (user == null || !(await _userManager.CheckPasswordAsync(user, model.Password))){
+                return new LoginResponse(false, "Invalid username or password");
+            }
+
+            var token = await GenerateTokenAsync(user);
+            var refreshToken = GenerateRefreshToken();
+
+            return new LoginResponse(true, "Login Successfull", token, refreshToken);
         }
     }
 }
