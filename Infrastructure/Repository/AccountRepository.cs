@@ -1,12 +1,12 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
-using Infrastructure.Extensions;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Application.DTOs.Request.Account;
 using Application.DTOs.Response;
 using Application.DTOs.Response.Account;
+using Application.Extensions;
 using Application.IRepository;
 using Domain.Entity.Authentication;
 using Mapster;
@@ -91,6 +91,7 @@ namespace Infrastructure.Repository
                 return null!;
             }
         }
+
         private async Task<GeneralResponse> AssignUserToRole(
             ApplicationUser applicationUser,
             IdentityRole identityRole
@@ -106,7 +107,9 @@ namespace Infrastructure.Repository
                 applicationUser,
                 identityRole.Name
             );
-            return result.ToGeneralResponse($"Assigned {applicationUser.Name} role {identityRole.Name}");
+            return result.ToGeneralResponse(
+                $"Assigned {applicationUser.Name} role {identityRole.Name}"
+            );
         }
 
         public Task<GeneralResponse> ChangeUserRoleRequestAsync(ChangeUserRoleRequest model)
@@ -119,9 +122,25 @@ namespace Infrastructure.Repository
             throw new NotImplementedException();
         }
 
-        public Task CreateAdmin()
+        public async Task CreateAdmin()
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (await FindRoleByNameAsync(Constants.Role.Admin) != null)
+                    return;
+                var admin = new CreateAccountDTO()
+                {
+                    Name = "Admin",
+                    Password = "Admin123",
+                    EmailAddress = "admin@admin.com",
+                    Role = Constants.Role.Admin,
+                };
+                await CreateAccountAsync(admin);
+            }
+            catch (System.Exception)
+            {
+                throw;
+            }
         }
 
         public Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
