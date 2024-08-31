@@ -126,19 +126,18 @@ namespace Infrastructure.Repository
         {
             try
             {
-                if (await FindRoleByNameAsync(Constants.Role.Admin) != null)
-                    return;
-                var admin = new CreateAccountDTO()
-                {
+                if(await FindRoleByNameAsync(Constants.Role.Admin) != null) return;
+                var admin = new CreateAccountDTO(){
                     Name = "Admin",
+                    EmailAddress = "admin123@gmail.com",
                     Password = "Admin123",
-                    EmailAddress = "admin@admin.com",
                     Role = Constants.Role.Admin,
                 };
                 await CreateAccountAsync(admin);
             }
             catch (System.Exception)
             {
+                
                 throw;
             }
         }
