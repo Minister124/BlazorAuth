@@ -60,7 +60,7 @@ namespace Infrastructure.Repository
                 //list of claims to add in token. This provides more flexibility then fixed array lai new[];
                 var userClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, applicationUser.UserName ?? "No UserName"),
+                    new Claim(ClaimTypes.Name, applicationUser.Email ?? "No UserName"),
                     new Claim(ClaimTypes.Email, applicationUser.Email ?? "No Email"),
                     new Claim("FullName", applicationUser.Name ?? "No FullName"),
                     new Claim(
@@ -122,12 +122,22 @@ namespace Infrastructure.Repository
             try
             {
                 if (await FindUserByEmailAsync(model.EmailAddress) != null)
-                    return new GeneralResponse(false, $"{model.EmailAddress} already Exist.")
+                    return new GeneralResponse(false, $"{model.EmailAddress} already Exist.");
+                var user = new ApplicationUser(){
+                    Name = model.Name,
+                    UserName = model.EmailAddress,
+                    Email = model.EmailAddress,
+                    PasswordHash = model.Password
+                };
+                var result = await _userManager.CreateAsync(user);
+                result.ToGeneralResponse($"Account Created Sucessfully");
+
+                var (flag, messgae) = await AssignUserToRole(user, new IdentityRole() { Name = model.Role});
+                return new GeneralResponse(flag, messgae);
             }
-            catch (System.Exception)
-            {
-                
-                throw;
+            catch (Exception ex)
+            {               
+                return new GeneralResponse(false, ex.Message);
             }
         }
 
