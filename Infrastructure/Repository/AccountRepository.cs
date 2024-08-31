@@ -117,9 +117,18 @@ namespace Infrastructure.Repository
             throw new NotImplementedException();
         }
 
-        public Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
+        public async Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (await FindUserByEmailAsync(model.EmailAddress) != null)
+                    return new GeneralResponse(false, $"{model.EmailAddress} already Exist.")
+            }
+            catch (System.Exception)
+            {
+                
+                throw;
+            }
         }
 
         public async Task CreateAdmin()
