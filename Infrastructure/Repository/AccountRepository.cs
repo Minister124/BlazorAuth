@@ -41,6 +41,10 @@ namespace Infrastructure.Repository
             await _userManager.FindByEmailAsync(email)
             ?? throw new InvalidOperationException($"Email {email} not found");
 
+        private async Task<ApplicationUser> FindUserByUserNameAsync(string userName) =>
+            await _userManager.FindByNameAsync(userName)
+            ?? throw new InvalidOperationException($"Username {userName} not found");
+
         private async Task<IdentityRole> FindRoleByNameAsync(string roleName) =>
             await _roleManager.FindByNameAsync(roleName)
             ?? throw new InvalidOperationException($"Role {roleName} not found");
@@ -60,7 +64,7 @@ namespace Infrastructure.Repository
                 //list of claims to add in token. This provides more flexibility then fixed array lai new[];
                 var userClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, applicationUser.Email ?? "No UserName"),
+                    new Claim(ClaimTypes.Name, applicationUser.UserName ?? "No UserName"),
                     new Claim(ClaimTypes.Email, applicationUser.Email ?? "No Email"),
                     new Claim("FullName", applicationUser.Name ?? "No FullName"),
                     new Claim(
@@ -123,20 +127,26 @@ namespace Infrastructure.Repository
             {
                 if (await FindUserByEmailAsync(model.EmailAddress) != null)
                     return new GeneralResponse(false, $"{model.EmailAddress} already Exist.");
-                var user = new ApplicationUser(){
+                if (await FindUserByUserNameAsync(model.UserName) != null)
+                    return new GeneralResponse(false, $"{model.UserName} already exists.");
+                var user = new ApplicationUser()
+                {
                     Name = model.Name,
-                    UserName = model.EmailAddress,
+                    UserName = model.UserName,
                     Email = model.EmailAddress,
-                    PasswordHash = model.Password
+                    PasswordHash = model.Password,
                 };
                 var result = await _userManager.CreateAsync(user);
                 result.ToGeneralResponse($"Account Created Sucessfully");
 
-                var (flag, messgae) = await AssignUserToRole(user, new IdentityRole() { Name = model.Role});
+                var (flag, messgae) = await AssignUserToRole(
+                    user,
+                    new IdentityRole() { Name = model.Role }
+                );
                 return new GeneralResponse(flag, messgae);
             }
             catch (Exception ex)
-            {               
+            {
                 return new GeneralResponse(false, ex.Message);
             }
         }
@@ -145,8 +155,10 @@ namespace Infrastructure.Repository
         {
             try
             {
-                if(await FindRoleByNameAsync(Constants.Role.Admin) != null) return;
-                var admin = new CreateAccountDTO(){
+                if (await FindRoleByNameAsync(Constants.Role.Admin) != null)
+                    return;
+                var admin = new CreateAccountDTO()
+                {
                     Name = "Admin",
                     EmailAddress = "admin123@gmail.com",
                     Password = "Admin123",
@@ -156,7 +168,6 @@ namespace Infrastructure.Repository
             }
             catch (System.Exception)
             {
-                
                 throw;
             }
         }
@@ -178,7 +189,7 @@ namespace Infrastructure.Repository
 
         public async Task<LoginResponse> LoginAsync(LoginDTO model)
         {
-            var user = await FindUserByEmailAsync(model.EmailAddress);
+            var user = await FindUserByEmailAsync(model.EmailAddress) ?? await FindUserByUserNameAsync(model.UserName);
             if (user == null || !(await _userManager.CheckPasswordAsync(user, model.Password)))
             {
                 return new LoginResponse(false, "Invalid username or password");

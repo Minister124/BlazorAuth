@@ -9,6 +9,9 @@ public class LoginDTO
     // [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Not a Valid Email Address")]
     [Display(Name = "Email Address")]
     public string EmailAddress { get; set; } = string.Empty;
+    
+    [Required]
+    public string UserName { get; set; } = string.Empty;
 
     [Required]
     // [RegularExpression(
