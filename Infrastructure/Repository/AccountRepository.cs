@@ -12,6 +12,7 @@ using Domain.Entity.Authentication;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Repository
@@ -24,17 +25,21 @@ namespace Infrastructure.Repository
 
         private readonly SignInManager<ApplicationUser> _signInManager;
 
+        private readonly ILogger<AccountRepository> _logger;
+
         public AccountRepository(
             IConfiguration configuration,
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            SignInManager<ApplicationUser> signInManager
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AccountRepository> logger
         )
         {
             _configuration = configuration;
             _userManager = userManager;
             _roleManager = roleManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         private async Task<ApplicationUser> FindUserByEmailAsync(string email) =>
@@ -189,16 +194,77 @@ namespace Infrastructure.Repository
 
         public async Task<LoginResponse> LoginAsync(LoginDTO model)
         {
-            var user = await FindUserByEmailAsync(model.EmailAddress) ?? await FindUserByUserNameAsync(model.UserName);
-            if (user == null || !(await _userManager.CheckPasswordAsync(user, model.Password)))
+            try
             {
-                return new LoginResponse(false, "Invalid username or password");
+                _logger.LogInformation(
+                    "Login attempt for user {EmailorUserName}",
+                    model.EmailAddress ?? model.UserName
+                );
+                var user =
+                    await FindUserByEmailAsync(model.EmailAddress)
+                    ?? await FindUserByUserNameAsync(model.UserName);
+                if (user == null)
+                {
+                    _logger.LogWarning(
+                        "Login Failed for {EmailorUserName}: User not found",
+                        model.EmailAddress ?? model.UserName
+                    );
+                    return new LoginResponse(false, "Invalid username or password");
+                }
+
+                SignInResult signInResult;
+                try
+                {
+                    signInResult = await _signInManager.CheckPasswordSignInAsync(
+                        user,
+                        model.Password,
+                        false
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Login failed for {EmailOrUserName}: Exception during sign-in",
+                        model.EmailAddress ?? model.UserName
+                    );
+                    return new LoginResponse(false, "Invalid Credentials");
+                }
+
+                if (!signInResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Login failed for {EmailOrUserName}: Invalid credentials",
+                        model.EmailAddress ?? model.UserName
+                    );
+                    return new LoginResponse(false, "Invalid Credentials");
+                }
+                var token = await GenerateTokenAsync(user);
+                var refreshToken = GenerateRefreshToken();
+                if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(refreshToken))
+                {
+                    _logger.LogError(
+                        "Token generation failed for {EmailOrUserName}",
+                        model.EmailAddress ?? model.UserName
+                    );
+                    return new LoginResponse(false, "Please contact the administrator");
+                }
+
+                _logger.LogInformation(
+                    "Login successful for {EmailOrUserName}",
+                    model.EmailAddress ?? model.UserName
+                );
+                return new LoginResponse(true, "Login Successful", token, refreshToken);
             }
-
-            var token = await GenerateTokenAsync(user);
-            var refreshToken = GenerateRefreshToken();
-
-            return new LoginResponse(true, "Login Successfull", token, refreshToken);
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "An error occurred during the login process for {EmailOrUserName}",
+                    model.EmailAddress ?? model.UserName
+                );
+                return new LoginResponse(false, ex.Message);
+            }
         }
     }
 }
