@@ -1,6 +1,8 @@
 using System.Text;
+using Application.IRepository;
 using Domain.Entity.Authentication;
 using Infrastructure.Data;
+using Infrastructure.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +67,7 @@ public static class ServiceContainer
                         .AllowAnyMethod()
             );
         });
+        services.AddScoped<IAccount, AccountRepository>();
         return services;
     }
 }

@@ -238,16 +238,52 @@ namespace Infrastructure.Repository
             }
         }
 
-        // Placeholder method for creating a role (not yet implemented).
-        public Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
+        // Placeholder method for creating a role
+        public async Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Check if the role already exists
+                if (await FindRoleByNameAsync(model.Name) != null)
+                {
+                    _logger.LogWarning("Role {Name} already exists", model.Name);
+                    return new GeneralResponse(false, "Role already exists.");
+                }
+
+                // Create a new IdentityRole object from the DTO
+                var identityRole = new IdentityRole { Name = model.Name };
+
+                // Use RoleManager to create the role
+                var result = await _roleManager.CreateAsync(identityRole);
+
+                // Log the creation attempt and return the appropriate response
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("Role {RoleName} created successfully", model.Name);
+                    return new GeneralResponse(true, "Role created successfully.");
+                }
+                else
+                {
+                    var errorMessage = string.Join(",", result.Errors.Select(e => e.Description));
+                    _logger.LogError("Role creation failed: {Errors}", errorMessage);
+                    return new GeneralResponse(false, errorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "An error occurred while creating the role {RoleName}",
+                    model.Name
+                );
+                return new GeneralResponse(false, ex.Message);
+            }
         }
 
-        // Placeholder method for getting roles (not yet implemented).
-        public Task<IEnumerable<GetRoleDTO>> GetRoleAsynce()
+        // method for getting roles
+        public async Task<IEnumerable<GetRoleDTO>> GetRoleAsynce()
         {
-            throw new NotImplementedException();
+            return (await _roleManager.Roles.ToListAsync()).Adapt<IEnumerable<GetRoleDTO>>();
         }
 
         // Method to get a list of users along with their roles.
