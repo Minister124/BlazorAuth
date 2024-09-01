@@ -9,4 +9,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public AppDbContext(DbContextOptions<AppDbContext> dbContextOptions) : base(dbContextOptions)
     {
     }
+
+    public DbSet<RefreshToken> RefreshTokens{ get; set; }
 }

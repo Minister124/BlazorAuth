@@ -15,6 +15,8 @@ namespace Application.IRepository
 
         Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model);
 
+        Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model);
+
         Task<IEnumerable<GetRoleDTO>> GetRoleAsynce();
 
         Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync();   

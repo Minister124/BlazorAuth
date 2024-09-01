@@ -9,8 +9,10 @@ using Application.DTOs.Response.Account;
 using Application.Extensions;
 using Application.IRepository;
 using Domain.Entity.Authentication;
+using Infrastructure.Data;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -27,12 +29,15 @@ namespace Infrastructure.Repository
 
         private readonly ILogger<AccountRepository> _logger;
 
+        private readonly AppDbContext _context;
+
         public AccountRepository(
             IConfiguration configuration,
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<AccountRepository> logger
+            ILogger<AccountRepository> logger,
+            AppDbContext context
         )
         {
             _configuration = configuration;
@@ -40,6 +45,7 @@ namespace Infrastructure.Repository
             _roleManager = roleManager;
             _signInManager = signInManager;
             _logger = logger;
+            _context = context;
         }
 
         private async Task<ApplicationUser> FindUserByEmailAsync(string email) =>
@@ -187,9 +193,23 @@ namespace Infrastructure.Repository
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync()
+        public async Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync()
         {
-            throw new NotImplementedException();
+            var allUsers = await _userManager.Users.ToListAsync();
+            if(allUsers == null) return null;
+
+            var List = new List<GetUsersWithRolesResponseDTO>();
+            foreach (var user in allUsers){
+                var getUserRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+                var getRoleInfo = await _roleManager.Roles.FirstOrDefaultAsync(r => r.Name.ToLower() == getUserRole.ToLower());
+                List.Add(new GetUsersWithRolesResponseDTO(){
+                    Name = user.Name,
+                    Email = user.Email,
+                    RoleId = getRoleInfo.Id,
+                    RoleName = getRoleInfo.Name
+                });
+            }
+            return List;
         }
 
         public async Task<LoginResponse> LoginAsync(LoginDTO model)
@@ -249,12 +269,20 @@ namespace Infrastructure.Repository
                     );
                     return new LoginResponse(false, "Please contact the administrator");
                 }
-
-                _logger.LogInformation(
-                    "Login successful for {EmailOrUserName}",
-                    model.EmailAddress ?? model.UserName
-                );
-                return new LoginResponse(true, "Login Successful", token, refreshToken);
+                else
+                {
+                    var saveResult = await SaveRefreshToken(user.Id, refreshToken);
+                    if (saveResult.flag)
+                        return new LoginResponse(
+                            true,
+                            $"{user.Name} successfully logged in",
+                            token,
+                            refreshToken
+                        );
+                    else
+                        return new LoginResponse();
+                }
+                ;
             }
             catch (Exception ex)
             {
@@ -264,6 +292,54 @@ namespace Infrastructure.Repository
                     model.EmailAddress ?? model.UserName
                 );
                 return new LoginResponse(false, ex.Message);
+            }
+        }
+
+        public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
+        {
+            var token = await _context.RefreshTokens.FirstOrDefaultAsync(x =>
+                x.Token == model.Token
+            );
+            if (token == null)
+                return new LoginResponse();
+            var user = await _userManager.FindByIdAsync(token.UserID);
+            string newToken = await GenerateTokenAsync(user);
+            string refreshToken = GenerateRefreshToken();
+            var saveResult = await SaveRefreshToken(user.Id, refreshToken);
+            if (saveResult.flag)
+                return new LoginResponse(
+                    true,
+                    $"{user.Name} succesfully re-logged in",
+                    newToken,
+                    refreshToken
+                );
+            else
+                return new LoginResponse();
+        }
+
+        public async Task<GeneralResponse> SaveRefreshToken(string userId, string token)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Save Refresh token attempt of userId {userIDorToken}",
+                    userId ?? token
+                );
+                var user = await _context.RefreshTokens.FirstOrDefaultAsync(x =>
+                    x.UserID == userId
+                );
+                if (user == null)
+                    _context.RefreshTokens.Add(
+                        new RefreshToken() { UserID = userId, Token = token }
+                    );
+                else
+                    user.Token = token;
+                await _context.SaveChangesAsync();
+                return new GeneralResponse(true, null!);
+            }
+            catch (Exception ex)
+            {
+                return new GeneralResponse(false, ex.Message);
             }
         }
     }
