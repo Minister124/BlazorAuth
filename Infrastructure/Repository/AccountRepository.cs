@@ -281,7 +281,7 @@ namespace Infrastructure.Repository
         }
 
         // method for getting roles
-        public async Task<IEnumerable<GetRoleDTO>> GetRoleAsynce()
+        public async Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
         {
             return (await _roleManager.Roles.ToListAsync()).Adapt<IEnumerable<GetRoleDTO>>();
         }

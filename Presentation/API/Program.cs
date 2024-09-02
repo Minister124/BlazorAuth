@@ -21,6 +21,7 @@ var audience = builder.Configuration["Jwt:Audience"];*/
 builder.Logging.AddConsole();*/
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -37,6 +38,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("Client.UI");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

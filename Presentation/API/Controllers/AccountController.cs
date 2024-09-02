@@ -1,5 +1,6 @@
 using Application.DTOs.Request.Account;
 using Application.DTOs.Response;
+using Application.DTOs.Response.Account;
 using Application.IRepository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -20,9 +21,47 @@ namespace API.Controllers
         }
 
         [HttpPost("identity/login")]
-        public async Task<ActionResult<GeneralResponse>> Login(LoginDTO model){
-            if(!ModelState.IsValid) return BadRequest("Model Cannot be Null");
+        public async Task<ActionResult<LoginResponse>> Login(LoginDTO model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Model Cannot be Null");
             return Ok(await account.LoginAsync(model));
         }
+
+        [HttpPost("identity/refresh-token")]
+        public async Task<ActionResult<GeneralResponse>> RefreshToken(RefreshTokenDTO model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Model Cannot be Null");
+            return Ok(await account.RefreshTokenAsync(model));
+        }
+
+        [HttpPost("identity/role/create")]
+        public async Task<ActionResult<GeneralResponse>> CreateRole(CreateRoleDTO model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Model Cannot be Null");
+            return Ok(await account.CreateRoleAsync(model));
+        }
+
+        [HttpPost("identity/role/list")]
+        public async Task<ActionResult<IEnumerable<GetRoleDTO>>> GetRoles() =>
+            Ok(await account.GetRoleAsync());
+
+        [HttpPost("/setting")]
+        public async Task<IActionResult> CreateAdmin()
+        {
+            await account.CreateAdmin();
+            return Ok();
+        }
+
+        [HttpPost("identity/user-with-roles")]
+        public async Task<ActionResult<IEnumerable<GeneralResponse>>> GetUserWithRoles() =>
+            Ok(await account.GetUsersWithRolesResponseAsync());
+
+        [HttpPost("identity/change-role")]
+        public async Task<ActionResult<GeneralResponse>> ChangeUserRole(
+            ChangeUserRoleRequest model
+        ) => Ok(await account.ChangeUserRoleRequestAsync(model));
     }
 }
