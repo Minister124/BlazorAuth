@@ -216,7 +216,7 @@ namespace Infrastructure.Repository
             try
             {
                 // Check if the Admin role already exists. If it does, exit the method.
-                if (await FindRoleByNameAsync(Constants.Role.Admin) != null)
+                if (await FindRoleByNameAsync(Constants.Role.Admin) == null)
                     return;
 
                 // Create a new CreateAccountDTO object with Admin user details.
@@ -231,11 +231,7 @@ namespace Infrastructure.Repository
                 // Create the Admin account using the CreateAccountAsync method.
                 await CreateAccountAsync(admin);
             }
-            catch (System.Exception)
-            {
-                // Handle any exceptions (currently just re-throwing the exception).
-                throw;
-            }
+            catch{}
         }
 
         // Placeholder method for creating a role

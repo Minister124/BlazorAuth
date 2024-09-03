@@ -2,9 +2,9 @@
   "name": "WASMCRUD",
   "version": "1.0.0",
   "scripts": {
-    "start:api": "dotnet run --project Presentation/API",
+    "start:api": "dotnet run --project Presentation/WebAPI",
     "watch:ui": "dotnet watch run --project Presentation/Client.UI",
-    "add-migration": "cd Infrastructure && dotnet ef migrations add --startup-project ../Presentation/API",
-    "update-database": "cd Infrastructure && dotnet ef database update --startup-project ../Presentation/API"
+    "add-migration": "cd Infrastructure && dotnet ef migrations add --startup-project ../Presentation/WebAPI",
+    "update-database": "cd Infrastructure && dotnet ef database update --startup-project ../Presentation/WebAPI"
   }
 }

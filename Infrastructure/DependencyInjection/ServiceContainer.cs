@@ -60,7 +60,7 @@ public static class ServiceContainer
                 "Client.UI",
                 policy =>
                     policy
-                        .WithOrigins("http://localhost:5141")
+                        .WithOrigins("https://localhost:7284")
                         .AllowAnyOrigin()
                         .AllowCredentials()
                         .AllowAnyHeader()

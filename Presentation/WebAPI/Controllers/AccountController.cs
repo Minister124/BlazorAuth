@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
-namespace API.Controllers
+namespace WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -48,8 +48,8 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<GetRoleDTO>>> GetRoles() =>
             Ok(await account.GetRoleAsync());
 
-        [HttpPost("/setting")]
-        public async Task<IActionResult> CreateAdmin()
+        [HttpPost("identity/admin/create")]
+        public async Task<IActionResult> CreateAdminAsync()
         {
             await account.CreateAdmin();
             return Ok();
