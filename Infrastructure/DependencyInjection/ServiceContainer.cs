@@ -61,7 +61,6 @@ public static class ServiceContainer
                 policy =>
                     policy
                         .WithOrigins("https://localhost:7284")
-                        .AllowAnyOrigin()
                         .AllowCredentials()
                         .AllowAnyHeader()
                         .AllowAnyMethod()

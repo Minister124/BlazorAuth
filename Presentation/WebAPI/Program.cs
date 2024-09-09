@@ -3,6 +3,8 @@ using Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Configuration.AddUserSecrets<Program>();
 // Clear existing logging providers and add console logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(); // For logging to the console (will show in terminal or Output window)
@@ -22,7 +24,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-// app.UseCors("Client.UI");
+app.UseCors("Client.UI");
 app.MapControllers();
 
 app.UseAuthentication();
