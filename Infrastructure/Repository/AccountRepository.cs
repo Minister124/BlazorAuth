@@ -222,9 +222,9 @@ namespace Infrastructure.Repository
                 var admin = new CreateAccountDTO()
                 {
                     Name = "Admin",
-                    UserName = "Don Dada",
+                    UserName = "Don_Dada",
                     EmailAddress = "admin123@gmail.com",
-                    Password = "Admin123", // The password should be stored securely (this is just a sample).
+                    Password = "Admin@12345", // The password should be stored securely (this is just a sample).
                     Role = Constants.Role.Admin,
                 };
 
