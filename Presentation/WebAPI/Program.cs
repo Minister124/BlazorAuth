@@ -3,11 +3,9 @@ using Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Configuration.AddUserSecrets<Program>();
-}
+// Clear existing logging providers and add console logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(); // For logging to the console (will show in terminal or Output window)
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

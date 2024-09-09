@@ -49,16 +49,13 @@ namespace Infrastructure.Repository
         }
 
         private async Task<ApplicationUser> FindUserByEmailAsync(string email) =>
-            await _userManager.FindByEmailAsync(email)
-            ?? throw new InvalidOperationException($"Email {email} not found");
+            await _userManager.FindByEmailAsync(email);
 
         private async Task<ApplicationUser> FindUserByUserNameAsync(string userName) =>
-            await _userManager.FindByNameAsync(userName)
-            ?? throw new InvalidOperationException($"Username {userName} not found");
+            await _userManager.FindByNameAsync(userName);
 
         private async Task<IdentityRole> FindRoleByNameAsync(string roleName) =>
-            await _roleManager.FindByNameAsync(roleName)
-            ?? throw new InvalidOperationException($"Role {roleName} not found");
+            await _roleManager.FindByNameAsync(roleName);
 
         private static string GenerateRefreshToken() =>
             Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -189,7 +186,7 @@ namespace Infrastructure.Repository
                 };
 
                 // Attempt to create the user in the system.
-                var result = await _userManager.CreateAsync(user);
+                var result = await _userManager.CreateAsync(user, model.Password);
 
                 // Convert the IdentityResult to a GeneralResponse for success message.
                 result.ToGeneralResponse($"Account Created Successfully");
@@ -215,14 +212,17 @@ namespace Infrastructure.Repository
         {
             try
             {
-                // Check if the Admin role already exists. If it does, exit the method.
+                // Check if the Admin role already exists. If it does not, Create Admin Role.
                 if (await FindRoleByNameAsync(Constants.Role.Admin) == null)
-                    return;
+                {
+                    await CreateRoleAsync(new CreateRoleDTO { Name = Constants.Role.Admin });
+                }
 
                 // Create a new CreateAccountDTO object with Admin user details.
                 var admin = new CreateAccountDTO()
                 {
                     Name = "Admin",
+                    UserName = "Don Dada",
                     EmailAddress = "admin123@gmail.com",
                     Password = "Admin123", // The password should be stored securely (this is just a sample).
                     Role = Constants.Role.Admin,
@@ -231,7 +231,9 @@ namespace Infrastructure.Repository
                 // Create the Admin account using the CreateAccountAsync method.
                 await CreateAccountAsync(admin);
             }
-            catch{}
+            catch (Exception ex){
+                _logger.LogError(ex, "An error occurred while creating the Admin account.");
+            }
         }
 
         // Placeholder method for creating a role
