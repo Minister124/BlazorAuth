@@ -77,11 +77,12 @@
 //         await _localStorageService.DeleteItemAsync(Constants.BrowserStorageKey);
 // }
 
-using Blazored.LocalStorage;
-using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Application.DTOs.Request.Account;
+using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
 
 namespace Application.Extensions
@@ -91,21 +92,31 @@ namespace Application.Extensions
         private readonly ILocalStorageService _localStorageService;
         private readonly string _encryptionKey;
 
-        public LocalStorageService(ILocalStorageService localStorageService, IConfiguration configuration)
+        public LocalStorageService(
+            ILocalStorageService localStorageService,
+            IConfiguration configuration
+        )
         {
             _localStorageService = localStorageService;
 
             // Access the EncryptionKey from Secrets.json
-            _encryptionKey = configuration["EncryptionKey"] ?? throw new Exception("Encryption key not found");
+            _encryptionKey =
+                configuration["EncryptionKey"] ?? throw new Exception("Encryption key not found");
         }
 
-        // Helper to serialize objects
-        private static string SerializeObj<T>(T modelObj) =>
-            JsonSerializer.Serialize(modelObj, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        //Helper to Serialize the objects
+        private static string SerializeObj<T>(T obj) =>
+            JsonSerializer.Serialize(
+                obj,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+            );
 
-        // Helper to deserialize JSON string
-        private static T DeSerializeJsonString<T>(string jsonString) =>
-            JsonSerializer.Deserialize<T>(jsonString, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+        //Helper to decrypt the Json string
+        private static T DeserializeJsonString<T>(string jsonString) =>
+            JsonSerializer.Deserialize<T>(
+                jsonString,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+            )!;
 
         // Helper to encrypt data before storing in LocalStorage
         private string Encrypt(string data)
@@ -150,7 +161,10 @@ namespace Application.Extensions
             {
                 var serializedData = SerializeObj(localStorageDTO);
                 var encryptedData = Encrypt(serializedData);
-                await _localStorageService.SetItemAsStringAsync(Constants.BrowserStorageKey, encryptedData);
+                await _localStorageService.SetItemAsStringAsync(
+                    Constants.BrowserStorageKey,
+                    encryptedData
+                );
             }
             catch (Exception ex)
             {
@@ -163,11 +177,14 @@ namespace Application.Extensions
         {
             try
             {
-                var encryptedData = await _localStorageService.GetItemAsStringAsync(Constants.BrowserStorageKey);
-                if (string.IsNullOrEmpty(encryptedData)) return null;
+                var encryptedData = await _localStorageService.GetItemAsStringAsync(
+                    Constants.BrowserStorageKey
+                );
+                if (string.IsNullOrEmpty(encryptedData))
+                    return null;
 
                 var decryptedData = Decrypt(encryptedData);
-                return DeSerializeJsonString<LocalStorageDTO>(decryptedData);
+                return DeserializeJsonString<LocalStorageDTO>(decryptedData);
             }
             catch
             {
@@ -189,4 +206,3 @@ namespace Application.Extensions
         }
     }
 }
-
