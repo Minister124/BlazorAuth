@@ -108,14 +108,14 @@ namespace Application.Extensions
         private static string SerializeObj<T>(T obj) => //T because we don't know what type LocalStorage, token will be passed here, but will be returned as string
             JsonSerializer.Serialize( //Serialize method of JsonSerialize to serialize the passed obj
                 obj,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase } //we want as FirstName not firstname and these options come from JsonSerializer options
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true } //we want as FirstName not firstname and these options come from JsonSerializer options
             );
 
         //Helper to decrypt the Json string
         private static T DeserializeJsonString<T>(string jsonString) => //T because we don't know what type will be returned here, user, roles etc. but we know that string value will be passed as parameter
             JsonSerializer.Deserialize<T>( //<T> for the same reason as above and Deserialize method from Json Serializer to deserialize the passed json serialized data
                 jsonString,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase } //we want as FirstName not firstname and these options come from JsonSerializer options
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true } //we want as FirstName not firstname and these options come from JsonSerializer options
             )!;
 
         // Helper to encrypt data before storing in LocalStorage
