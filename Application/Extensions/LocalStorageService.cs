@@ -105,53 +105,94 @@ namespace Application.Extensions
         }
 
         //Helper to Serialize the objects
-        private static string SerializeObj<T>(T obj) =>
-            JsonSerializer.Serialize(
+        private static string SerializeObj<T>(T obj) => //T because we don't know what type LocalStorage, token will be passed here, but will be returned as string
+            JsonSerializer.Serialize( //Serialize method of JsonSerialize to serialize the passed obj
                 obj,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase } //we want as FirstName not firstname and these options come from JsonSerializer options
             );
 
         //Helper to decrypt the Json string
-        private static T DeserializeJsonString<T>(string jsonString) =>
-            JsonSerializer.Deserialize<T>(
+        private static T DeserializeJsonString<T>(string jsonString) => //T because we don't know what type will be returned here, user, roles etc. but we know that string value will be passed as parameter
+            JsonSerializer.Deserialize<T>( //<T> for the same reason as above and Deserialize method from Json Serializer to deserialize the passed json serialized data
                 jsonString,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase } //we want as FirstName not firstname and these options come from JsonSerializer options
             )!;
 
         // Helper to encrypt data before storing in LocalStorage
         private string Encrypt(string data)
         {
+            // 1. Create an AES encryption object.
             using var aes = Aes.Create();
+
+            // 2. Set the encryption key by converting the `_encryptionKey` (which is a string) to a byte array.
             aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
+
+            // 3. Generate an initialization vector (IV), which is used to make encryption more secure.
             aes.GenerateIV();
+
+            // 4. Convert the IV to a Base64 string to store it with the encrypted data.
             var iv = Convert.ToBase64String(aes.IV);
+
+            // 5. Create an encryptor object based on the AES settings (key and IV).
             var encryptor = aes.CreateEncryptor();
+
+            // 6. Create a memory stream to store the encrypted data in memory.
             using var ms = new MemoryStream();
+
+            // 7. Create a crypto stream, which ties the memory stream with the encryption transformation.
+            //    It will write the encrypted data to the memory stream.
             using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+
+            // 8. Create a stream writer to write the `data` to the crypto stream, which in turn encrypts it.
             using (var sw = new StreamWriter(cs))
             {
+                // 9. Write the plain text data (input) to the crypto stream, where it gets encrypted.
                 sw.Write(data);
             }
 
+            // 10. Convert the encrypted data from the memory stream to a Base64 string.
             var encryptedData = Convert.ToBase64String(ms.ToArray());
-            return $"{iv}:{encryptedData}"; // Store IV and encrypted data
+
+            // 11. Return a combination of IV and the encrypted data, separated by a colon.
+            // This is done so that the IV can be used later for decryption.
+            return $"{iv}:{encryptedData}";
         }
 
         // Helper to decrypt data when retrieving from LocalStorage
         private string Decrypt(string encryptedData)
         {
+            // 1. Split the input `encryptedData` using the colon as a separator.
+            //    This gives us the IV and the actual encrypted data.
             var parts = encryptedData.Split(':');
+
+            // 2. Convert the IV from Base64 format back to a byte array.
             var iv = Convert.FromBase64String(parts[0]);
+
+            // 3. Convert the encrypted part of the data (also Base64) back to a byte array.
             var cipherText = Convert.FromBase64String(parts[1]);
 
+            // 4. Create a new AES decryption object.
             using var aes = Aes.Create();
+
+            // 5. Set the same key that was used for encryption (this is why both methods use `_encryptionKey`).
             aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
+
+            // 6. Set the IV that was stored with the encrypted data.
             aes.IV = iv;
+
+            // 7. Create a decryptor object to reverse the encryption transformation.
             var decryptor = aes.CreateDecryptor();
 
+            // 8. Create a memory stream to hold the encrypted data (cipher text).
             using var ms = new MemoryStream(cipherText);
+
+            // 9. Create a crypto stream to decrypt the data as it's read from the memory stream.
             using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+
+            // 10. Create a stream reader to read the decrypted data (which will be plain text).
             using var sr = new StreamReader(cs);
+
+            // 11. Return the decrypted plain text as a string.
             return sr.ReadToEnd();
         }
 
