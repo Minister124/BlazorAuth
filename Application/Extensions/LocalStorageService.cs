@@ -192,6 +192,26 @@ namespace Application.Extensions
             }
         }
 
+        public async Task<LocalStorageDTO> GetModelFromTokenAsync()
+        {
+            try
+            {
+                var encryptedData = await _localStorageService.GetItemAsStringAsync(
+                    Constants.BrowserStorageKey
+                );
+                if (string.IsNullOrEmpty(encryptedData))
+                {
+                    return new LocalStorageDTO();
+                }
+                var decryptedData = Decrypt(encryptedData);
+                return DeserializeJsonString<LocalStorageDTO>(decryptedData);
+            }
+            catch
+            {
+                return new LocalStorageDTO();
+            }
+        }
+
         public async Task RemoveBrowserLocalStorageAsync()
         {
             try
