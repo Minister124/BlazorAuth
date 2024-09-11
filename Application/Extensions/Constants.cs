@@ -7,6 +7,7 @@ public static class Constants
     public const string BrowserStorageKey = "x-key";
     public const string HttpClientHeaderScheme = "Bearer";
     public const string HttpClientName = "Client.UI";
+    public const string LoginRoute = "Client.UI";
     public static class Role
     {
         public const string Admin = "Admin";
