@@ -17,11 +17,11 @@ public class HttpClientService
         _localStorageService = localStorageService;
     }
 
-    private HttpClient CreateClient() => _httpClientFactory!.CreateClient(Constants.HttpClientName);
+    private HttpClient CreateClient() => _httpClientFactory!.CreateClient(Constants.HttpClientName); //creates a new HttpClient using name Client.UI as Client.UI is the client of my app
 
-    public HttpClient GetPublicClient() => _httpClientFactory.CreateClient();
+    public HttpClient GetPublicClient() => _httpClientFactory.CreateClient(); //public access with no authorization for like guest user with no login
 
-    public async Task<HttpClient> GetPrivateClient()
+    public async Task<HttpClient> GetPrivateClient() //For authorization and for authenticated request using Bearer authentication scheme
     {
         try
         {
