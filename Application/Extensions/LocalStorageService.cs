@@ -84,6 +84,7 @@ using System.Text.Json.Serialization;
 using Application.DTOs.Request.Account;
 using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Extensions
 {
@@ -92,12 +93,17 @@ namespace Application.Extensions
         private readonly ILocalStorageService _localStorageService;
         private readonly string _encryptionKey;
 
+        private readonly ILogger<LocalStorageService> _logger;
+
         public LocalStorageService(
             ILocalStorageService localStorageService,
-            IConfiguration configuration
+            IConfiguration configuration,
+            ILogger<LocalStorageService> logger
         )
         {
             _localStorageService = localStorageService;
+
+            _logger = logger;
 
             // Access the EncryptionKey from Secrets.json
             _encryptionKey =
@@ -209,11 +215,12 @@ namespace Application.Extensions
                     Constants.BrowserStorageKey,
                     encryptedData
                 );
+                 _logger.LogInformation("Successfully saved data to browser local storage.");
             }
             catch (Exception ex)
             {
                 // Handle exception (log it)
-                Console.WriteLine($"Error setting local storage: {ex.Message}");
+                _logger.LogError(ex, "Error setting local storage");
             }
         }
 
@@ -289,11 +296,12 @@ namespace Application.Extensions
             try
             {
                 await _localStorageService.RemoveItemAsync(Constants.BrowserStorageKey);
+                 _logger.LogInformation("Successfully removed data from browser local storage.");
             }
             catch (Exception ex)
             {
                 // Handle exception (log it)
-                Console.WriteLine($"Error removing local storage: {ex.Message}");
+               _logger.LogError(ex, "Error removing local storage");
             }
         }
     }
