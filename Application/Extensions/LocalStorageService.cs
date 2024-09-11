@@ -196,6 +196,9 @@ namespace Application.Extensions
             return sr.ReadToEnd();
         }
 
+        /*We are passing model of LocalStorageDTO in this method to serialize the data and encrypt it
+        and save it in local storage of borwser and to identify that encrypted data,
+        we are also saing browserStorageKey with it*/
         public async Task SetBrowserLocalStorageAsync(LocalStorageDTO localStorageDTO)
         {
             try
@@ -214,18 +217,48 @@ namespace Application.Extensions
             }
         }
 
-        public async Task<LocalStorageDTO?> GetBrowserLocalStorageAsync()
+        /*We are getting the encrypted data from browserlocal storage and to know which encrypted data,
+        we are passing browserstoragekey to identify it. Once the data is captured it is decrypted and after that
+        the decrypted is deserialized and returned as LocalStorageDTO as that is what we want return. Why? Because that
+        is what we encrypted after serializing above
+        */
+        // public async Task<LocalStorageDTO?> GetBrowserLocalStorageAsync()
+        // {
+        //     try
+        //     {
+        //         var encryptedData = await _localStorageService.GetItemAsStringAsync(
+        //             Constants.BrowserStorageKey
+        //         );
+        //         if (string.IsNullOrEmpty(encryptedData))
+        //             return null;
+
+        //         var decryptedData = Decrypt(encryptedData);
+        //         return DeserializeJsonString<LocalStorageDTO>(decryptedData);
+        //     }
+        //     catch
+        //     {
+        //         return null;
+        //     }
+        // }
+
+        /* This is the same method as above but without decrypting and deserializing the data
+        and I am creating this just in case. But mine code of above is better one. I don't know what weed
+        is the tutorial guy smoking. So, for now I am going with same output but not code from tutorial */
+        private async Task<string?> GetBrowserLocalStorageAsync()
         {
             try
             {
+                // Get the encrypted data from localStorage
                 var encryptedData = await _localStorageService.GetItemAsStringAsync(
                     Constants.BrowserStorageKey
                 );
+
+                // Check if the encrypted data is empty or null
                 if (string.IsNullOrEmpty(encryptedData))
                     return null;
 
-                var decryptedData = Decrypt(encryptedData);
-                return DeserializeJsonString<LocalStorageDTO>(decryptedData);
+                // Return the encrypted data directly (no decryption or deserialization)
+                return encryptedData;
             }
             catch
             {
@@ -237,10 +270,8 @@ namespace Application.Extensions
         {
             try
             {
-                var encryptedData = await _localStorageService.GetItemAsStringAsync(
-                    Constants.BrowserStorageKey
-                );
-                if (string.IsNullOrEmpty(encryptedData))
+                var encryptedData = await GetBrowserLocalStorageAsync();
+                if (string.IsNullOrEmpty(encryptedData) || string.IsNullOrWhiteSpace(encryptedData))
                 {
                     return new LocalStorageDTO();
                 }
