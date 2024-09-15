@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http.Json;
+using System.Reflection.Metadata;
 using Application.DTOs.Request.Account;
 using Application.DTOs.Response;
 using Application.DTOs.Response.Account;
@@ -29,14 +30,32 @@ public class AccountService : IAccountService
         throw new NotImplementedException();
     }
 
-    public Task CreateAdmin()
+    public async Task CreateAdmin()
     {
-        throw new NotImplementedException();
+        try
+        {
+            var client = _httpClientService.GetPublicClient();
+            await client.PostAsync(Constants.CreateAdminRoute, null);
+        }
+        catch { }
     }
 
-    public Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
+    public async Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var publicClient = _httpClientService.GetPublicClient();
+            var response = await publicClient.PostAsJsonAsync(Constants.RegisterRoute, model);
+            string error = CheckResponseStatus(response);
+            if (!string.IsNullOrEmpty(error))
+                return new GeneralResponse(false, error);
+            var result = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+            return result!;
+        }
+        catch (Exception ex)
+        {
+            return new GeneralResponse(false, ex.Message);
+        }
     }
 
     public Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
@@ -69,9 +88,12 @@ public class AccountService : IAccountService
         }
     }
 
-    private string CheckResponseStatus(HttpResponseMessage response)
+    private static string CheckResponseStatus(HttpResponseMessage response)
     {
-        throw new NotImplementedException();
+        if (!response.IsSuccessStatusCode)
+            return $"Error Description:{Environment.NewLine}Status Code:{response.StatusCode}{Environment.NewLine}Reason Phrase: {response.ReasonPhrase}";
+        else
+            return null;
     }
 
     public Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
