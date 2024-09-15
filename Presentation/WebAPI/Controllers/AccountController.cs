@@ -55,7 +55,7 @@ namespace WebAPI.Controllers
             return Ok();
         }
 
-        [HttpPost("identity/user-with-roles")]
+        [HttpPost("identity/users-with-roles")]
         public async Task<ActionResult<IEnumerable<GeneralResponse>>> GetUserWithRoles() =>
             Ok(await account.GetUsersWithRolesResponseAsync());
 
