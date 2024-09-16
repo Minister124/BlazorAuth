@@ -25,22 +25,7 @@ public class AccountService : IAccountService
         throw new NotImplementedException();
     }
 
-    public Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task CreateAdmin()
-    {
-        try
-        {
-            var client = _httpClientService.GetPublicClient();
-            await client.PostAsync(Constants.CreateAdminRoute, null);
-        }
-        catch { }
-    }
-
-    public async Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
+    public async Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
     {
         try
         {
@@ -56,6 +41,21 @@ public class AccountService : IAccountService
         {
             return new GeneralResponse(false, ex.Message);
         }
+    }
+
+    public async Task CreateAdmin()
+    {
+        try
+        {
+            var client = _httpClientService.GetPublicClient();
+            await client.PostAsync(Constants.CreateAdminRoute, null);
+        }
+        catch { }
+    }
+
+    public Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
+    {
+        throw new NotImplementedException();
     }
 
     public Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
