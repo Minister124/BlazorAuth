@@ -20,9 +20,25 @@ public class AccountService : IAccountService
         _logger = logger;
     }
 
-    public Task<GeneralResponse> ChangeUserRoleRequestAsync(ChangeUserRoleRequest model)
+    public async Task<GeneralResponse> ChangeUserRoleRequestAsync(ChangeUserRoleRequest model)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var privateClient = await _httpClientService.GetPrivateClientAsync();
+            var response = await privateClient.PostAsJsonAsync(
+                Constants.ChangeUserRoleRoute,
+                model
+            );
+            string error = CheckResponseStatus(response);
+            if (!string.IsNullOrEmpty(error))
+                return new GeneralResponse(false, error);
+            var result = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+            return result!;
+        }
+        catch (Exception ex)
+        {
+            return new GeneralResponse(false, ex.Message);
+        }
     }
 
     public async Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
@@ -58,14 +74,50 @@ public class AccountService : IAccountService
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
+    public async Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
     {
-        throw new NotImplementedException();
+        try
+        {
+            var privateClient = await _httpClientService.GetPrivateClientAsync();
+            var response = await privateClient.GetAsync(Constants.GetRolesRoute);
+            string error = CheckResponseStatus(response);
+            if (!string.IsNullOrEmpty(error))
+                throw new Exception(error);
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<GetRoleDTO>>();
+            return result!;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
-    public Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync()
+    // public IEnumerable<GetRoleDTO> GetDefaultRoles(){
+    //     var list = new List<GetRoleDTO>();
+    //     list?.Clear();
+    //     list.Add(new GetRoleDTO(1.ToString(), Constants.Role.Admin));
+    //     list.Add(new GetRoleDTO(1.ToString(), Constants.Role.User));
+    //     return list;
+    // }
+
+    public async Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync()
     {
-        throw new NotImplementedException();
+        try
+        {
+            var privateClient = await _httpClientService.GetPrivateClientAsync();
+            var response = await privateClient.GetAsync(Constants.GetUserWithRolesRoute);
+            string error = CheckResponseStatus(response);
+            if (!string.IsNullOrEmpty(error))
+                throw new Exception(error);
+            var result = await response.Content.ReadFromJsonAsync<
+                IEnumerable<GetUsersWithRolesResponseDTO>
+            >();
+            return result!;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
     public async Task<LoginResponse> LoginAsync(LoginDTO model)
@@ -96,8 +148,18 @@ public class AccountService : IAccountService
             return null;
     }
 
-    public Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
+    public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
     {
-        throw new NotImplementedException();
+        try{
+            var publicClient = _httpClientService.GetPublicClient();
+            var response = await publicClient.PostAsJsonAsync(Constants.RefreshTokenRoute, model);
+            string error = CheckResponseStatus(response);
+            if(!string.IsNullOrEmpty(error))
+                return new LoginResponse(false, error);
+            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            return result!;
+        } catch(Exception ex){
+            return new LoginResponse(false, ex.Message);
+        }
     }
 }
