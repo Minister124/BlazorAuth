@@ -20,6 +20,39 @@ public class AccountService : IAccountService
         _logger = logger;
     }
 
+    public async Task<TResponse?> PostRequestAsync<TRequest, TResponse>(string route, TRequest? model = null, bool isPrivate = false){
+        try{
+            HttpClient client;
+            if(isPrivate){
+                client = await _httpClientService.GetPrivateClientAsync();
+                if(client == null){
+                    _logger.LogError("Failed to create a private client for {Route}", route);
+                    return default;
+                }
+            } else {
+                client = _httpClientService.GetPublicClient();
+            }
+
+            //Make the Post request, Serializing the model as JSON if provided
+            HttpResponseMessage responseMessage = model != null ? await client.PostAsJsonAsync(route, model) : await client.PostAsync(route, null);
+            //Check if the response indicates a successful status code
+            string error = CheckResponseStatus(responseMessage);
+            if(!string.IsNullOrEmpty(error)){
+                _logger.LogError("Request to {Route} failed: {Error}", route,error);
+                return default;
+            }
+            //Deserialize the response if TResponse is expected
+            if(typeof(TResponse) != typeof(void)){
+                var result = await responseMessage.Content.ReadFromJsonAsync<TResponse>();
+                return result;
+            }
+            return default;
+        } catch (Exception ex){
+            _logger.LogError(ex,"Request to {Route} failed with an exception", route);
+            return default;
+        }
+    }
+
     public async Task<GeneralResponse> ChangeUserRoleRequestAsync(ChangeUserRoleRequest model)
     {
         try
