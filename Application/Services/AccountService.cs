@@ -20,35 +20,55 @@ public class AccountService : IAccountService
         _logger = logger;
     }
 
-    public async Task<TResponse?> PostRequestAsync<TRequest, TResponse>(string route, TRequest? model = null, bool isPrivate = false){
-        try{
+    public async Task<TResponse?> PostRequestAsync<TRequest, TResponse>(
+        string route,
+        TRequest? model = default,
+        bool isPrivate = false
+    )
+    {
+        try
+        {
             HttpClient client;
-            if(isPrivate){
+            if (isPrivate)
+            {
                 client = await _httpClientService.GetPrivateClientAsync();
-                if(client == null){
+                if (client == null)
+                {
                     _logger.LogError("Failed to create a private client for {Route}", route);
                     return default;
                 }
-            } else {
+            }
+            else
+            {
                 client = _httpClientService.GetPublicClient();
             }
 
-            //Make the Post request, Serializing the model as JSON if provided
-            HttpResponseMessage responseMessage = model != null ? await client.PostAsJsonAsync(route, model) : await client.PostAsync(route, null);
-            //Check if the response indicates a successful status code
+            // Make the POST request, serializing the model as JSON if provided
+            HttpResponseMessage responseMessage =
+                model != null
+                    ? await client.PostAsJsonAsync(route, model)
+                    : await client.PostAsync(route, null);
+
+            // Check if the response indicates a successful status code
             string error = CheckResponseStatus(responseMessage);
-            if(!string.IsNullOrEmpty(error)){
-                _logger.LogError("Request to {Route} failed: {Error}", route,error);
+            if (!string.IsNullOrEmpty(error))
+            {
+                _logger.LogError("Request to {Route} failed: {Error}", route, error);
                 return default;
             }
-            //Deserialize the response if TResponse is expected
-            if(typeof(TResponse) != typeof(void)){
+
+            // Deserialize the response if TResponse is expected
+            if (typeof(TResponse) != typeof(void))
+            {
                 var result = await responseMessage.Content.ReadFromJsonAsync<TResponse>();
                 return result;
             }
+
             return default;
-        } catch (Exception ex){
-            _logger.LogError(ex,"Request to {Route} failed with an exception", route);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Request to {Route} failed with an exception", route);
             return default;
         }
     }
@@ -57,37 +77,45 @@ public class AccountService : IAccountService
     {
         try
         {
-            var privateClient = await _httpClientService.GetPrivateClientAsync();
-            var response = await privateClient.PostAsJsonAsync(
+            var result = await PostRequestAsync<ChangeUserRoleRequest, GeneralResponse>(
                 Constants.ChangeUserRoleRoute,
-                model
+                model,
+                isPrivate: true
             );
-            string error = CheckResponseStatus(response);
-            if (!string.IsNullOrEmpty(error))
-                return new GeneralResponse(false, error);
-            var result = await response.Content.ReadFromJsonAsync<GeneralResponse>();
-            return result!;
+            if (result != null)
+            {
+                _logger.LogInformation(
+                    "Successfully changed the user role for {userEmail}",
+                    model.userEmail
+                );
+                return result;
+            }
+            _logger.LogError("Request Failed to change user role for {userEmail}", model.userEmail);
+            return new GeneralResponse(false, "Failed to Change user Role");
         }
         catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Exception occured while changing user role for {UserEmail}",
+                model.userEmail
+            );
             return new GeneralResponse(false, ex.Message);
         }
     }
 
     public async Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
     {
-        try
-        {
-            var publicClient = _httpClientService.GetPublicClient();
-            var response = await publicClient.PostAsJsonAsync(Constants.RegisterRoute, model);
-            string error = CheckResponseStatus(response);
-            if (!string.IsNullOrEmpty(error))
-                return new GeneralResponse(false, error);
-            var result = await response.Content.ReadFromJsonAsync<GeneralResponse>();
-            return result!;
-        }
-        catch (Exception ex)
-        {
+        try{
+            var result = await PostRequestAsync<CreateAccountDTO, GeneralResponse>(Constants.RegisterRoute, model, isPrivate: false);
+            if (result != null){
+                _logger.LogInformation("Account created successfully for {username}", model.UserName);
+                return result;
+            }
+            _logger.LogError("Creation Failed!!. Failed to create account for {username}", model.UserName);
+            return new GeneralResponse(false, "Failed to create account");
+        }catch(Exception ex){
+            _logger.LogError(ex, "Exception occured during account creation for {username}", model.UserName);
             return new GeneralResponse(false, ex.Message);
         }
     }
@@ -183,15 +211,18 @@ public class AccountService : IAccountService
 
     public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
     {
-        try{
+        try
+        {
             var publicClient = _httpClientService.GetPublicClient();
             var response = await publicClient.PostAsJsonAsync(Constants.RefreshTokenRoute, model);
             string error = CheckResponseStatus(response);
-            if(!string.IsNullOrEmpty(error))
+            if (!string.IsNullOrEmpty(error))
                 return new LoginResponse(false, error);
             var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
             return result!;
-        } catch(Exception ex){
+        }
+        catch (Exception ex)
+        {
             return new LoginResponse(false, ex.Message);
         }
     }
