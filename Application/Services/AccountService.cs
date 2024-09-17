@@ -106,16 +106,34 @@ public class AccountService : IAccountService
 
     public async Task<GeneralResponse> CreateAccountAsync(CreateAccountDTO model)
     {
-        try{
-            var result = await PostRequestAsync<CreateAccountDTO, GeneralResponse>(Constants.RegisterRoute, model, isPrivate: false);
-            if (result != null){
-                _logger.LogInformation("Account created successfully for {username}", model.UserName);
+        try
+        {
+            var result = await PostRequestAsync<CreateAccountDTO, GeneralResponse>(
+                Constants.RegisterRoute,
+                model,
+                isPrivate: false
+            );
+            if (result != null)
+            {
+                _logger.LogInformation(
+                    "Account created successfully for {username}",
+                    model.UserName
+                );
                 return result;
             }
-            _logger.LogError("Creation Failed!!. Failed to create account for {username}", model.UserName);
+            _logger.LogError(
+                "Creation Failed!!. Failed to create account for {username}",
+                model.UserName
+            );
             return new GeneralResponse(false, "Failed to create account");
-        }catch(Exception ex){
-            _logger.LogError(ex, "Exception occured during account creation for {username}", model.UserName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Exception occured during account creation for {username}",
+                model.UserName
+            );
             return new GeneralResponse(false, ex.Message);
         }
     }
@@ -127,12 +145,25 @@ public class AccountService : IAccountService
             var client = _httpClientService.GetPublicClient();
             await client.PostAsync(Constants.CreateAdminRoute, null);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
-    public Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
+    public async Task<GeneralResponse> CreateRoleAsync(CreateRoleDTO model)
     {
-        throw new NotImplementedException();
+        try{
+            var result = await PostRequestAsync<CreateRoleDTO, GeneralResponse>(Constants.CreateRoleRoute, model, isPrivate: true);
+            if (result != null){
+                _logger.LogInformation("Role {name} Created Successfully", model.Name);
+                return result;
+            }
+            return new GeneralResponse(false,"Failed to create the role");
+        }catch(Exception ex){
+            _logger.LogError("Exception occured during role creation of {name}", model.Name);
+            return new GeneralResponse(false, ex.Message);
+        }
     }
 
     public async Task<IEnumerable<GetRoleDTO>> GetRoleAsync()
@@ -183,22 +214,11 @@ public class AccountService : IAccountService
 
     public async Task<LoginResponse> LoginAsync(LoginDTO model)
     {
-        try
-        {
-            var publicClient = _httpClientService.GetPublicClient();
-            var response = await publicClient.PostAsJsonAsync(Constants.LoginRoute, model);
-            string error = CheckResponseStatus(response);
-            if (!string.IsNullOrEmpty(error))
-                return new LoginResponse(false, error);
-            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            _logger.LogInformation("Successfully Logged In");
-            return result!;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Login Failed");
-            return new LoginResponse(false, ex.Message);
-        }
+        return await PostRequestAsync<LoginDTO, LoginResponse>(
+            Constants.LoginRoute,
+            model,
+            isPrivate: false
+        ) ?? new LoginResponse(false, "Login failed.");
     }
 
     private static string CheckResponseStatus(HttpResponseMessage response)
@@ -211,19 +231,10 @@ public class AccountService : IAccountService
 
     public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
     {
-        try
-        {
-            var publicClient = _httpClientService.GetPublicClient();
-            var response = await publicClient.PostAsJsonAsync(Constants.RefreshTokenRoute, model);
-            string error = CheckResponseStatus(response);
-            if (!string.IsNullOrEmpty(error))
-                return new LoginResponse(false, error);
-            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            return result!;
-        }
-        catch (Exception ex)
-        {
-            return new LoginResponse(false, ex.Message);
-        }
+         return await PostRequestAsync<RefreshTokenDTO, LoginResponse>(
+            Constants.RefreshTokenRoute,
+            model,
+            isPrivate: false
+        ) ?? new LoginResponse(false, "Failed to refresh token.");
     }
 }
