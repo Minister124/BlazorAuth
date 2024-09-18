@@ -114,14 +114,22 @@ namespace Application.Extensions
         private static string SerializeObj<T>(T obj) => //T because we don't know what type LocalStorage, token will be passed here, but will be returned as string
             JsonSerializer.Serialize( //Serialize method of JsonSerialize to serialize the passed obj
                 obj,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true } //we want as FirstName not firstname and these options come from JsonSerializer options
+                new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    PropertyNameCaseInsensitive = true,
+                } //we want as FirstName not firstname and these options come from JsonSerializer options
             );
 
         //Helper to decrypt the Json string
         private static T DeserializeJsonString<T>(string jsonString) => //T because we don't know what type will be returned here, user, roles etc. but we know that string value will be passed as parameter
             JsonSerializer.Deserialize<T>( //<T> for the same reason as above and Deserialize method from Json Serializer to deserialize the passed json serialized data
                 jsonString,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true } //we want as FirstName not firstname and these options come from JsonSerializer options
+                new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    PropertyNameCaseInsensitive = true,
+                } //we want as FirstName not firstname and these options come from JsonSerializer options
             )!;
 
         // Helper to encrypt data before storing in LocalStorage
@@ -215,7 +223,7 @@ namespace Application.Extensions
                     Constants.BrowserStorageKey,
                     encryptedData
                 );
-                 _logger.LogInformation("Successfully saved data to browser local storage.");
+                _logger.LogInformation("Successfully saved data to browser local storage.");
             }
             catch (Exception ex)
             {
@@ -296,12 +304,53 @@ namespace Application.Extensions
             try
             {
                 await _localStorageService.RemoveItemAsync(Constants.BrowserStorageKey);
-                 _logger.LogInformation("Successfully removed data from browser local storage.");
+                _logger.LogInformation("Successfully removed data from browser local storage.");
             }
             catch (Exception ex)
             {
                 // Handle exception (log it)
-               _logger.LogError(ex, "Error removing local storage");
+                _logger.LogError(ex, "Error removing local storage");
+            }
+        }
+
+        public async Task RemoveTokenFromBrowserLocalStorageAsync()
+        {
+            try
+            {
+                // Get the existing encrypted data from local storage
+                var encryptedData = await GetBrowserLocalStorageAsync();
+
+                // Check if there is any stored data
+                if (string.IsNullOrEmpty(encryptedData))
+                {
+                    _logger.LogInformation("No token found in local storage to remove.");
+                    return;
+                }
+
+                // Decrypt the stored data
+                var decryptedData = Decrypt(encryptedData);
+
+                // Deserialize the data into LocalStorageDTO object
+                var localStorageDTO = DeserializeJsonString<LocalStorageDTO>(decryptedData);
+
+                // Remove the token by setting it to null or empty string
+                localStorageDTO.Token = null; // or "" if you prefer
+
+                // Re-serialize and encrypt the modified object
+                var updatedSerializedData = SerializeObj(localStorageDTO);
+                var updatedEncryptedData = Encrypt(updatedSerializedData);
+
+                // Save the updated data back to the local storage
+                await _localStorageService.SetItemAsStringAsync(
+                    Constants.BrowserStorageKey,
+                    updatedEncryptedData
+                );
+
+                _logger.LogInformation("Successfully removed token from browser local storage.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing token from local storage.");
             }
         }
     }
