@@ -1,1 +1,36 @@
-﻿<h1>This is nav</h1>
+﻿@using Application.Extensions
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div>
+    <div>
+        <a href="">
+            <div>
+
+            </div>
+        </a>
+        <button title="Navigation menu" @onclick="ToggelNavMenu">
+            <span></span>
+        </button>
+    </div>
+</div>
+
+<div class="nav-scrollable" @onclick="ToggelNavMenu">
+    <nav>
+        <div>
+            <NavLink class="" href="content/home" Match="NavLinkMatch.All">
+                <span></span> Records
+            </NavLink>
+        </div>
+
+        <AuthorizeView Roles="@Constants.Role.Admin">
+            
+        </AuthorizeView>
+        
+    </nav>
+</div>
+@code {
+    private Task ToggelNavMenu(MouseEventArgs e)
+    {
+        throw new NotImplementedException();
+    }
+}
