@@ -57,10 +57,10 @@ public static class ServiceContainer
         services.AddCors(c =>
         {
             c.AddPolicy(
-                "Client.UI",
+                "Client",
                 policy =>
                     policy
-                        .WithOrigins("https://localhost:7284")
+                        .WithOrigins("https://localhost:7299")
                         .AllowCredentials()
                         .AllowAnyHeader()
                         .AllowAnyMethod()

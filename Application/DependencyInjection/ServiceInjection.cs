@@ -18,8 +18,8 @@ public static class ServiceInjection
         services.AddScoped<AuthenticationStateProvider, CustomAuthenticationProvider>();
         services.AddTransient<CustomHttpHandler>();
         services.AddCascadingAuthenticationState();
-        services.AddHttpClient("Client.UI", client => {
-            client.BaseAddress = new Uri("https://localhost:7284/");
+        services.AddHttpClient("Client", client => {
+            client.BaseAddress = new Uri("https://localhost:7299/");
         }).AddHttpMessageHandler<CustomHttpHandler>();
         return services;
     }

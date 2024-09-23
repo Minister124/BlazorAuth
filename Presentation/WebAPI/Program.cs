@@ -24,7 +24,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("Client.UI");
+app.UseCors("Client");
 app.MapControllers();
 
 app.UseAuthentication();
