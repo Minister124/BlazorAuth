@@ -8,6 +8,7 @@ interface CardProps {
     animate?: boolean;
     hover?: boolean;
     delay?: number;
+    style?: React.CSSProperties;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -16,7 +17,8 @@ const Card: React.FC<CardProps> = ({
     variant = 'default',
     animate = false,
     hover = true,
-    delay = 0
+    delay = 0,
+    style = {}
 }) => {
     const baseStyles = 'rounded-xl p-6 transition-all duration-300';
     
@@ -29,12 +31,12 @@ const Card: React.FC<CardProps> = ({
     const animations = animate ? 'animate-scale-in' : '';
     const hoverEffect = hover ? 'card-shadow' : '';
 
-    const style = delay ? { animationDelay: `${delay}s` } : {};
+    const mergedStyle = delay ? { ...style, animationDelay: `${delay}s` } : style;
 
     return (
         <div 
             className={`${baseStyles} ${variants[variant]} ${animations} ${hoverEffect} ${className}`}
-            style={style}
+            style={mergedStyle}
         >
             {children}
         </div>

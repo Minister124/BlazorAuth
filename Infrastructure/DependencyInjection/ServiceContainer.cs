@@ -19,19 +19,26 @@ public static class ServiceContainer
         IConfiguration configuration
     )
     {
-        //Register AppDbContext with Sql Server
+        // Register AppDbContext with Sql Server
         services.AddDbContext<AppDbContext>(o =>
             o.UseSqlServer(configuration.GetConnectionString("Kushal"))
         );
 
-        //Register Identity Services
+        // Register Identity Services
         services
-            .AddIdentityCore<ApplicationUser>() //To specify the user type
-            .AddRoles<IdentityRole>() //To add support for Roles
-            .AddEntityFrameworkStores<AppDbContext>() //stores All Identity Data to AppDbContext
-            .AddSignInManager(); //For login in and login out
+            .AddIdentity<ApplicationUser, IdentityRole>(options => 
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
 
-        //Register JWT Authentication
+        // Register JWT Authentication
         services
             .AddAuthentication(o =>
             {
@@ -52,15 +59,15 @@ public static class ServiceContainer
                     ), // Set the signing key. The key used to sign the token, converted from a string to a symmetric security key.
                 }
             );
-        services.AddAuthentication();
+
         services.AddAuthorization();
         services.AddCors(c =>
         {
             c.AddPolicy(
-                "Client",
+                "frontend-app",
                 policy =>
                     policy
-                        .WithOrigins("https://localhost:7299")
+                        .WithOrigins(configuration.GetSection("AllowedOrigins").Get<string[]>())
                         .AllowCredentials()
                         .AllowAnyHeader()
                         .AllowAnyMethod()

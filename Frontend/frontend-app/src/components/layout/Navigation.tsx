@@ -27,26 +27,33 @@ export default function Navigation() {
                     <div className="flex items-center space-x-4">
                         {isAuthenticated ? (
                             <div className="flex items-center space-x-6 animate-fade-in">
+                                {user?.role === 'Admin' && (
+                                    <Link
+                                        to="/dashboard"
+                                        className="nav-link relative text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-all hover-scale"
+                                    >
+                                        Dashboard
+                                    </Link>
+                                )}
                                 <Link
-                                    to="/dashboard"
+                                    to="/welcome"
                                     className="nav-link relative text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-all hover-scale"
                                 >
-                                    Dashboard
-                                </Link>
-                                <Link
-                                    to="/profile"
-                                    className="nav-link relative text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-all hover-scale"
-                                >
-                                    Profile
+                                    Welcome
                                 </Link>
                                 <div className="relative ml-3 flex items-center space-x-4">
                                     <div className="flex items-center space-x-2">
                                         <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">
-                                            {user?.userName?.charAt(0).toUpperCase()}
+                                            {user?.name?.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">
-                                            {user?.userName}
-                                        </span>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-700">
+                                                {user?.name}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                                {user?.role}
+                                            </span>
+                                        </div>
                                     </div>
                                     <button
                                         onClick={handleLogout}

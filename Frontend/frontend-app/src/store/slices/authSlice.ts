@@ -1,10 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { authService, LoginCredentials, RegisterData, AuthResponse } from '../../services/auth.service';
+import { authService, LoginCredentials, RegisterData, AuthResponse, UserData } from '../../services/auth.service';
 
 interface AuthState {
     isAuthenticated: boolean;
     token: string | null;
     refreshToken: string | null;
+    user: UserData | null;
     loading: boolean;
     error: string | null;
 }
@@ -13,11 +14,12 @@ const initialState: AuthState = {
     isAuthenticated: authService.isAuthenticated(),
     token: localStorage.getItem('token'),
     refreshToken: localStorage.getItem('refreshToken'),
+    user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null,
     loading: false,
     error: null,
 };
 
-export const login = createAsyncThunk(
+export const login = createAsyncThunk<AuthResponse, LoginCredentials>(
     'auth/login',
     async (credentials: LoginCredentials, { rejectWithValue }) => {
         try {
@@ -32,7 +34,7 @@ export const login = createAsyncThunk(
     }
 );
 
-export const register = createAsyncThunk(
+export const register = createAsyncThunk<AuthResponse, RegisterData>(
     'auth/register',
     async (userData: RegisterData, { rejectWithValue }) => {
         try {
@@ -70,6 +72,7 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.token = null;
             state.refreshToken = null;
+            state.user = null;
             state.error = null;
             authService.logout();
         },
@@ -89,6 +92,7 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.token = action.payload.token || null;
                 state.refreshToken = action.payload.refreshToken || null;
+                state.user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
@@ -104,6 +108,7 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.token = action.payload.token || null;
                 state.refreshToken = action.payload.refreshToken || null;
+                state.user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
             })
             .addCase(register.rejected, (state, action) => {
                 state.loading = false;

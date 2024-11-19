@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { register } from '../../store/slices/authSlice';
+import { register, logout } from '../../store/slices/authSlice';
 import type { RootState, AppDispatch } from '../../store';
 import { toast } from 'react-toastify';
 
@@ -11,14 +11,15 @@ export default function Register() {
         userName: '',
         emailAddress: '',
         password: '',
-        confirmPassword: '',
+        confirmPassword: '',  
+        role: 'User'  
     });
 
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
     const { loading, error } = useSelector((state: RootState) => state.auth);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -28,7 +29,7 @@ export default function Register() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (formData.password !== formData.confirmPassword) {
+        if (formData.password !== formData.confirmPassword) {  
             toast.error('Passwords do not match');
             return;
         }
@@ -36,8 +37,11 @@ export default function Register() {
         try {
             const result = await dispatch(register(formData)).unwrap();
             if (result.flag) {
-                toast.success(result.message || 'Registration successful!');
-                navigate('/dashboard');
+                toast.success('Registration successful! Please log in.');
+                // Clear any auth state that might have been set
+                dispatch(logout());
+                // Redirect to login page
+                navigate('/login');
             } else {
                 toast.error(result.message || 'Registration failed');
             }
@@ -139,6 +143,22 @@ export default function Register() {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                             />
+                        </div>
+                        <div>
+                            <label htmlFor="role" className="sr-only">
+                                Role
+                            </label>
+                            <select
+                                id="role"
+                                name="role"
+                                required
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                value={formData.role}
+                                onChange={handleChange}
+                            >
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                            </select>
                         </div>
                     </div>
 
