@@ -7,11 +7,11 @@ import { toast } from 'react-toastify';
 
 export default function Register() {
     const [formData, setFormData] = useState({
-        email: '',
+        name: '',
+        userName: '',
+        emailAddress: '',
         password: '',
         confirmPassword: '',
-        firstName: '',
-        lastName: '',
     });
 
     const dispatch = useDispatch<AppDispatch>();
@@ -34,11 +34,15 @@ export default function Register() {
         }
 
         try {
-            await dispatch(register(formData)).unwrap();
-            toast.success('Registration successful!');
-            navigate('/dashboard');
-        } catch (err) {
-            toast.error(error || 'Registration failed');
+            const result = await dispatch(register(formData)).unwrap();
+            if (result.flag) {
+                toast.success(result.message || 'Registration successful!');
+                navigate('/dashboard');
+            } else {
+                toast.error(result.message || 'Registration failed');
+            }
+        } catch (err: any) {
+            toast.error(err?.message || error || 'Registration failed');
         }
     };
 
@@ -59,48 +63,48 @@ export default function Register() {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
-                            <label htmlFor="first-name" className="sr-only">
-                                First Name
+                            <label htmlFor="name" className="sr-only">
+                                Full Name
                             </label>
                             <input
-                                id="first-name"
-                                name="firstName"
+                                id="name"
+                                name="name"
                                 type="text"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="First Name"
-                                value={formData.firstName}
+                                placeholder="Full Name"
+                                value={formData.name}
                                 onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label htmlFor="last-name" className="sr-only">
-                                Last Name
+                            <label htmlFor="userName" className="sr-only">
+                                Username
                             </label>
                             <input
-                                id="last-name"
-                                name="lastName"
+                                id="userName"
+                                name="userName"
                                 type="text"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Last Name"
-                                value={formData.lastName}
+                                placeholder="Username"
+                                value={formData.userName}
                                 onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label htmlFor="email-address" className="sr-only">
+                            <label htmlFor="emailAddress" className="sr-only">
                                 Email address
                             </label>
                             <input
-                                id="email-address"
-                                name="email"
+                                id="emailAddress"
+                                name="emailAddress"
                                 type="email"
                                 autoComplete="email"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Email address"
-                                value={formData.email}
+                                value={formData.emailAddress}
                                 onChange={handleChange}
                             />
                         </div>
@@ -121,11 +125,11 @@ export default function Register() {
                             />
                         </div>
                         <div>
-                            <label htmlFor="confirm-password" className="sr-only">
+                            <label htmlFor="confirmPassword" className="sr-only">
                                 Confirm Password
                             </label>
                             <input
-                                id="confirm-password"
+                                id="confirmPassword"
                                 name="confirmPassword"
                                 type="password"
                                 autoComplete="new-password"
@@ -142,34 +146,17 @@ export default function Register() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                         >
                             {loading ? (
                                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                                    <svg
-                                        className="animate-spin h-5 w-5 text-white"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        ></circle>
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        ></path>
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 </span>
-                            ) : (
-                                'Register'
-                            )}
+                            ) : null}
+                            Sign up
                         </button>
                     </div>
                 </form>
