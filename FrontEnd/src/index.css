@@ -1,24 +1,72 @@
+@import '@fontsource/poppins/300.css';
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply antialiased text-gray-900;
+    @apply antialiased text-gray-900 font-['Poppins'] bg-[#0A0F1C];
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-300;
   }
   
   .btn-primary {
-    @apply bg-blue-500 text-white hover:bg-blue-600;
+    @apply bg-gradient-to-r from-[#FF3366] to-[#FF6B98] text-white 
+           hover:from-[#FF4778] hover:to-[#FF83AB] 
+           active:from-[#E62D5C] active:to-[#FF5C89];
+  }
+
+  .glass-panel {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 
+           rounded-2xl shadow-2xl;
+  }
+
+  .input-field {
+    @apply bg-white/5 border border-white/10 text-white 
+           placeholder-white/50 rounded-xl px-4 py-3
+           focus:ring-2 focus:ring-[#FF3366] focus:border-transparent
+           transition-all duration-300;
   }
 }
 
 /* Smooth animations */
 * {
-  @apply transition-colors duration-200;
+  @apply transition-all duration-300;
+}
+
+/* Input focus animations */
+input:focus {
+  @apply ring-offset-2 ring-opacity-50;
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px #FF3366, 0 0 10px #FF3366, 0 0 15px #FF6B98;
+  }
+  to {
+    box-shadow: 0 0 10px #FF3366, 0 0 15px #FF6B98, 0 0 20px #FF6B98;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/20 rounded-full hover:bg-white/30;
 }
