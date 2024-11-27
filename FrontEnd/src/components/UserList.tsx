@@ -1,143 +1,160 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCog, Edit2, X, Building } from 'lucide-react';
+import { Search, Filter, Building, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { User } from '../types/user';
+import { Button } from './shared/Button';
+import { Input } from './shared/Input';
+import { Select } from './shared/Select';
+import { Badge } from './shared/Badge';
+import { Card, CardHeader, CardTitle, CardContent } from './shared/Card';
 
-export function UserList() {
-  const { users, updateUser, user: currentUser, roles, departments } = useAuthStore();
-  const [editingUser, setEditingUser] = useState<string | null>(null);
+export default function UserList() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const handleRoleChange = (userId: string, roleId: string) => {
-    const selectedRole = roles.find(r => r.id === roleId);
-    if (selectedRole) {
-      updateUser(userId, { role: selectedRole });
-      setEditingUser(null);
-    }
-  };
+  const { users, departments, roles } = useAuthStore();
 
-  const canManageRoles = currentUser?.role.permissions.includes('manage_roles');
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = 
+        searchQuery === '' ||
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const renderRoleSelector = (user: User) => {
-    const isEditing = editingUser === user.id;
+      const matchesRole = 
+        selectedRole === '' || 
+        user.role.name === selectedRole;
 
-    if (!canManageRoles) {
-      return (
-        <span 
-          className="px-3 py-1 rounded-full text-sm font-medium"
-          style={{ 
-            backgroundColor: user.role.color + '20',
-            color: user.role.color
-          }}
-        >
-          {user.role.name}
-        </span>
-      );
-    }
+      const matchesDepartment = 
+        selectedDepartment === '' || 
+        user.departmentId === selectedDepartment;
 
-    if (!isEditing) {
-      return (
-        <div className="flex items-center space-x-2">
-          <span 
-            className="px-3 py-1 rounded-full text-sm font-medium"
-            style={{ 
-              backgroundColor: user.role.color + '20',
-              color: user.role.color
-            }}
-          >
-            {user.role.name}
-          </span>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setEditingUser(user.id)}
-            className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
-          >
-            <Edit2 size={16} />
-          </motion.button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center space-x-2">
-        <select
-          value={user.role.id}
-          onChange={(e) => handleRoleChange(user.id, e.target.value)}
-          className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          autoFocus
-        >
-          {roles.map(role => (
-            <option key={role.id} value={role.id}>
-              {role.name}
-            </option>
-          ))}
-        </select>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setEditingUser(null)}
-          className="p-1 text-red-600 hover:bg-red-100 rounded-full"
-        >
-          <X size={16} />
-        </motion.button>
-      </div>
-    );
-  };
+      return matchesSearch && matchesRole && matchesDepartment;
+    });
+  }, [users, searchQuery, selectedRole, selectedDepartment]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-8"
-    >
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-          <p className="text-gray-600 mt-1">
-            {canManageRoles ? 'Click the edit icon next to a role to change it' : 'User roles are managed by administrators'}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <UserCog className="text-gray-600" size={24} />
-          <span className="text-gray-600 font-medium">Total Users: {users.length}</span>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Users</h1>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            icon={<Search className="w-4 h-4" />}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Filter className="w-4 h-4" />}
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+          >
+            Filter
+          </Button>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <AnimatePresence mode="wait">
-          {users.map((user) => (
-            <motion.div
-              key={user.id}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 20, opacity: 0 }}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center space-x-4">
+      {/* Filters */}
+      <AnimatePresence>
+        {isFilterOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Select
+                    label="Role"
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    icon={<Shield className="w-4 h-4" />}
+                  >
+                    <option value="">All Roles</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    label="Department"
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    icon={<Building className="w-4 h-4" />}
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User List */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredUsers.map((user) => (
+          <Card key={user.id} variant="hover">
+            <div className="flex items-start gap-4">
+              <div className="relative flex-shrink-0">
                 <img
-                  src={user.avatar}
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
                   alt={user.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="h-12 w-12 rounded-full object-cover"
                 />
-                <div>
-                  <h3 className="font-semibold text-gray-800">{user.name}</h3>
-                  <p className="text-gray-600 text-sm">{user.email}</p>
-                  <div className="flex items-center space-x-2">
-                    <Building size={16} className="text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {departments.find(d => d.id === user.departmentId)?.name || 'No Department'}
-                    </span>
-                  </div>
+                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-gray-900" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-medium text-gray-900 dark:text-white">
+                  {user.name}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {user.email}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="info">
+                    {user.role.name}
+                  </Badge>
+                  {user.departmentId && (
+                    <Badge variant="default">
+                      {departments.find(d => d.id === user.departmentId)?.name}
+                    </Badge>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                {renderRoleSelector(user)}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+            </div>
+          </Card>
+        ))}
+        
+        {filteredUsers.length === 0 && (
+          <Card className="col-span-full p-8 text-center">
+            <CardContent>
+              <Search className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                No users found
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Try adjusting your search or filter criteria
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }

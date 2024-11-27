@@ -1,195 +1,173 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, Suspense } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
-import { LogOut, Shield, Users, Settings, Building, UserPlus, User } from 'lucide-react';
-import { AuthForm } from './components/AuthForm';
-import { UserList } from './components/UserList';
-import { UserCreationForm } from './components/UserCreationForm';
-import { RoleManagement } from './components/RoleManagement';
-import { DepartmentManagement } from './components/DepartmentManagement';
-import { DepartmentAssignment } from './components/DepartmentAssignment';
-import { UserProfile } from './components/profile/UserProfile';
-import { WaterBubbles } from './components/background/WaterBubbles';
-import { ThemeToggle } from './components/profile/ThemeToggle';
+import { Sun, Moon, Menu, Loader2 } from 'lucide-react';
+
+import Navigation from './components/Navigation';
+import UserList from './components/UserList';
+import { ProfileForm } from './components/profile/ProfileForm';
 import { useAuthStore } from './store/useAuthStore';
-import { useThemeStore } from './store/useThemeStore';
 
-type Tab = 'users' | 'create-user' | 'roles' | 'departments' | 'assign-departments' | 'profile';
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 }
+};
 
-function App() {
-  const { user, logout } = useAuthStore();
-  const { theme } = useThemeStore();
-  const [activeTab, setActiveTab] = useState<Tab>('users');
+export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() => 
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const location = useLocation();
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'create-user':
-        return <UserCreationForm />;
-      case 'roles':
-        return <RoleManagement />;
-      case 'departments':
-        return <DepartmentManagement />;
-      case 'assign-departments':
-        return <DepartmentAssignment />;
-      case 'profile':
-        return <UserProfile />;
-      default:
-        return <UserList />;
-    }
-  };
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
 
-  if (!user) {
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location]);
+
+  if (isLoading) {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0A0F1C]' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} flex items-center justify-center px-4 relative overflow-hidden`}>
-        <WaterBubbles />
-        <div className="relative z-10">
-          <AuthForm />
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+        >
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Loading...</span>
+        </motion.div>
       </div>
     );
   }
 
-  const canManageRoles = user.role.permissions.includes('manage_roles');
-  const canCreateUsers = user.role.permissions.includes('create_user');
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const toggleTheme = () => setIsDarkMode(prev => !prev);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0A0F1C] text-white' : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800'}`}>
-      <Toaster position="top-right" />
-      <div className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center mb-8"
-        >
-          <div className="flex items-center space-x-4">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-12 h-12 rounded-full object-cover"
-            />
-            <div>
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              <div className="flex items-center space-x-2">
-                <Shield size={16} className="text-blue-600" />
-                <span className="text-blue-600 font-medium">{user.role.name}</span>
-              </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          className: 'dark:bg-gray-800 dark:text-white',
+          duration: 4000,
+        }}
+      />
+      
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleMobileMenu}
+              className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </motion.button>
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+            >
+              BlazorAuth
+            </motion.h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTheme}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Toggle theme"
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              )}
+            </motion.button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Navigation Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 lg:hidden bg-black bg-opacity-50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.3 }}
+              className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-950 shadow-lg"
+              onClick={e => e.stopPropagation()}
+            >
+              <Navigation onClose={() => setIsMobileMenuOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex gap-6">
+          {/* Desktop Navigation */}
+          <div className="hidden lg:block w-64 shrink-0">
+            <div className="sticky top-24">
+              <Navigation onClose={() => {}} />
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={logout}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              <LogOut size={20} />
-              <span>Logout</span>
-            </motion.button>
-          </div>
-        </motion.div>
 
-        <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('users')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-              activeTab === 'users'
-                ? 'bg-blue-500 text-white'
-                : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-            }`}
-          >
-            <Users size={20} />
-            <span>Users</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('profile')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-              activeTab === 'profile'
-                ? 'bg-blue-500 text-white'
-                : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-            }`}
-          >
-            <User size={20} />
-            <span>Profile</span>
-          </motion.button>
-
-          {canCreateUsers && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveTab('create-user')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-                activeTab === 'create-user'
-                  ? 'bg-blue-500 text-white'
-                  : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-              }`}
-            >
-              <UserPlus size={20} />
-              <span>Create User</span>
-            </motion.button>
-          )}
-
-          {canManageRoles && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveTab('roles')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-                activeTab === 'roles'
-                  ? 'bg-blue-500 text-white'
-                  : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-              }`}
-            >
-              <Shield size={20} />
-              <span>Roles</span>
-            </motion.button>
-          )}
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('departments')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-              activeTab === 'departments'
-                ? 'bg-blue-500 text-white'
-                : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-            }`}
-          >
-            <Building size={20} />
-            <span>Departments</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('assign-departments')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap ${
-              activeTab === 'assign-departments'
-                ? 'bg-blue-500 text-white'
-                : theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-50'
-            }`}
-          >
-            <Settings size={20} />
-            <span>Assign</span>
-          </motion.button>
+          {/* Main Content Area */}
+          <main className="flex-1 min-w-0">
+            <AnimatePresence mode="wait">
+              <Suspense
+                fallback={
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-center h-64"
+                  >
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-600 dark:text-gray-300" />
+                  </motion.div>
+                }
+              >
+                <motion.div
+                  key={location.pathname}
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
+                >
+                  <Routes>
+                    <Route path="/users" element={<UserList />} />
+                    <Route path="/profile" element={<ProfileForm user={user} />} />
+                    <Route path="*" element={<Navigate to="/users" replace />} />
+                  </Routes>
+                </motion.div>
+              </Suspense>
+            </AnimatePresence>
+          </main>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className={theme === 'dark' ? 'glass-panel' : 'bg-white rounded-xl shadow-xl p-6'}
-        >
-          {renderContent()}
-        </motion.div>
       </div>
     </div>
   );
 }
-
-export default App;

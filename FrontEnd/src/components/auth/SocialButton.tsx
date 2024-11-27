@@ -1,22 +1,32 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { Button } from '../shared/Button';
+import { cn } from '../../lib/utils';
 
-interface SocialButtonProps {
+interface SocialButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ReactNode;
-  onClick: () => void;
   provider: string;
+  isLoading?: boolean;
 }
 
-export function SocialButton({ icon, onClick, provider }: SocialButtonProps) {
+export function SocialButton({ 
+  icon, 
+  provider, 
+  className,
+  isLoading,
+  ...props 
+}: SocialButtonProps) {
   return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+    <Button
+      variant="outline"
+      className={cn(
+        "w-full bg-background hover:bg-accent hover:text-accent-foreground",
+        className
+      )}
+      icon={icon}
+      isLoading={isLoading}
+      {...props}
     >
-      <span className="text-gray-600">{icon}</span>
-      <span className="ml-2 text-sm font-medium text-gray-700">{provider}</span>
-    </motion.button>
+      <span className="ml-2">{provider}</span>
+    </Button>
   );
 }

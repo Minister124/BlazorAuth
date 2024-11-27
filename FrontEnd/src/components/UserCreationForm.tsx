@@ -1,100 +1,164 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { User, Mail, Building, Shield } from 'lucide-react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { User as UserIcon, Mail as MailIcon, Building as BuildingIcon, Shield as ShieldIcon, UserPlus as UserPlusIcon } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './shared/Card';
+import { Input } from './shared/Input';
+import { Select } from './shared/Select';
+import { Button } from './shared/Button';
 import { useAuthStore } from '../store/useAuthStore';
+import { toast } from 'react-hot-toast';
+import { cn } from '../lib/utils';
 
-export function UserCreationForm() {
+const userCreationSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  department: z.string().optional(),
+  roleId: z.string().min(1, 'Please select a role'),
+});
+
+type FormData = z.infer<typeof userCreationSchema>;
+
+interface UserCreationFormProps {
+  className?: string;
+}
+
+export function UserCreationForm({ className }: UserCreationFormProps) {
   const { roles, departments, createUser } = useAuthStore();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    department: '',
-    roleId: roles[2].id, // Default to basic user role
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormData>({
+    resolver: zodResolver(userCreationSchema),
+    defaultValues: {
+      roleId: roles[2]?.id || '', // Default to basic user role if available
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const selectedRole = roles.find(role => role.id === formData.roleId);
-    await createUser({
-      ...formData,
-      role: selectedRole!,
-    });
-    setFormData({ name: '', email: '', department: '', roleId: roles[2].id });
+  const onSubmit = async (data: FormData) => {
+    try {
+      const selectedRole = roles.find(role => role.id === data.roleId);
+      if (!selectedRole) {
+        toast.error('Invalid role selected');
+        return;
+      }
+
+      await createUser({
+        ...data,
+        role: selectedRole,
+      });
+      
+      toast.success('User created successfully');
+      reset();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(
+        error instanceof Error 
+          ? `Failed to create user: ${error.message}`
+          : 'Failed to create user. Please try again.'
+      );
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8"
-    >
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Create New User</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-        </div>
-        
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-        </div>
+    <Card className={cn("w-full max-w-2xl mx-auto shadow-sm rounded-lg", className)}>
+      <CardHeader>
+        <CardTitle>Create New User</CardTitle>
+        <CardDescription>Add a new user to the system</CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+        {Object.keys(errors).length > 0 && (
+          <div className="px-4 sm:px-6 py-2 bg-destructive/10 text-destructive text-sm rounded-md mx-4 sm:mx-6">
+            Please fix the following errors:
+            <ul className="list-disc list-inside mt-1">
+              {Object.entries(errors).map(([field, error]) => (
+                <li key={field}>{error?.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <CardContent className="space-y-6 px-4 sm:px-6">
+          {/* Basic Information */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Basic Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <Input
+                label="Full Name"
+                error={errors.name?.message}
+                icon={<UserIcon className="h-4 w-4 text-muted-foreground" />}
+                {...register('name')}
+                placeholder="John Doe"
+              />
+              
+              <Input
+                label="Email Address"
+                type="email"
+                error={errors.email?.message}
+                icon={<MailIcon className="h-4 w-4 text-muted-foreground" />}
+                {...register('email')}
+                placeholder="john@example.com"
+              />
+            </div>
+          </div>
+          
+          {/* Organization Details */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Organization Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <Select
+                label="Role"
+                error={errors.roleId?.message}
+                icon={<ShieldIcon className="h-4 w-4 text-muted-foreground" />}
+                {...register('roleId')}
+              >
+                <option value="">Select Role</option>
+                {roles.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </Select>
 
-        <div className="relative">
-          <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <select
-            value={formData.department}
-            onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              <Select
+                label="Department"
+                icon={<BuildingIcon className="h-4 w-4 text-muted-foreground" />}
+                {...register('department')}
+              >
+                <option value="">Select Department</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 px-4 sm:px-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => reset()}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2"
           >
-            <option value="">Select Department</option>
-            {departments.map(dept => (
-              <option key={dept.id} value={dept.name}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="relative">
-          <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <select
-            value={formData.roleId}
-            onChange={(e) => setFormData(prev => ({ ...prev, roleId: e.target.value }))}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
+            <ShieldIcon className="h-4 w-4" />
+            Reset
+          </Button>
+          <Button 
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2"
           >
-            {roles.map(role => (
-              <option key={role.id} value={role.id}>
-                {role.name} - {role.description}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="submit"
-          className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-semibold shadow-lg"
-        >
-          Create User
-        </motion.button>
+            <UserPlusIcon className="h-4 w-4" />
+            {isSubmitting ? 'Creating...' : 'Create User'}
+          </Button>
+        </CardFooter>
       </form>
-    </motion.div>
+    </Card>
   );
 }

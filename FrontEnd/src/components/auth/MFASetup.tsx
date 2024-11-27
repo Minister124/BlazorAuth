@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
 import { Shield, Check } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
+import { Button } from '../shared/Button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../shared/Card';
 
 interface MFASetupProps {
   onComplete: () => void;
 }
 
 export function MFASetup({ onComplete }: MFASetupProps) {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,74 +20,97 @@ export function MFASetup({ onComplete }: MFASetupProps) {
     try {
       // Simulate MFA verification
       await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('MFA setup complete!');
+      toast.success('Two-factor authentication enabled successfully');
       onComplete();
     } catch (error) {
-      toast.error('MFA setup failed');
+      toast.error(error instanceof Error ? error.message : 'Failed to enable 2FA');
     } finally {
       setIsVerifying(false);
     }
   };
 
+  const handleInput = (index: number, value: string) => {
+    if (value.length > 1) return; // Only allow single character
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+
+    // Move to next input if value is entered
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      // Move to previous input on backspace if current input is empty
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').slice(0, 6);
+    const newCode = [...code];
+    
+    [...pastedData].forEach((char, index) => {
+      if (index < 6) newCode[index] = char;
+    });
+    
+    setCode(newCode);
+    if (pastedData.length > 0) {
+      inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl"
-    >
-      <div className="flex justify-center mb-6">
-        <div className="p-3 bg-purple-100 rounded-full">
-          <Shield className="w-8 h-8 text-purple-600" />
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Shield className="w-6 h-6 text-primary" />
         </div>
-      </div>
+        <CardTitle className="text-2xl text-center">Two-Factor Authentication</CardTitle>
+        <p className="text-center text-muted-foreground">
+          Enter the 6-digit code from your authenticator app
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex justify-center gap-2">
+            {code.map((digit, index) => (
+              <input
+                key={index}
+                ref={el => inputRefs.current[index] = el}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
+                className="w-12 h-12 text-center text-lg font-medium rounded-md border border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={digit}
+                onChange={(e) => handleInput(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={handlePaste}
+              />
+            ))}
+          </div>
 
-      <h2 className="text-2xl font-bold text-center mb-2">Set Up Two-Factor Authentication</h2>
-      <p className="text-center text-gray-600 mb-8">
-        Enhance your account security with 2FA
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex justify-center space-x-2">
-          {[...Array(6)].map((_, i) => (
-            <input
-              key={i}
-              type="text"
-              maxLength={1}
-              className="w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xl font-semibold"
-              value={code[i] || ''}
-              onChange={(e) => {
-                const newCode = code.split('');
-                newCode[i] = e.target.value;
-                setCode(newCode.join(''));
-                if (e.target.value && e.target.nextElementSibling) {
-                  (e.target.nextElementSibling as HTMLInputElement).focus();
-                }
-              }}
-            />
-          ))}
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-lg font-semibold shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50"
-          type="submit"
-          disabled={isVerifying || code.length !== 6}
-        >
-          {isVerifying ? (
-            'Verifying...'
-          ) : (
-            <>
-              <Check size={20} />
-              <span>Verify and Complete Setup</span>
-            </>
-          )}
-        </motion.button>
-      </form>
-
-      <p className="mt-6 text-sm text-center text-gray-500">
-        You can always set up 2FA later from your account settings
-      </p>
-    </motion.div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={code.join('').length !== 6}
+            isLoading={isVerifying}
+            icon={!isVerifying ? <Check className="w-4 h-4" /> : undefined}
+          >
+            {isVerifying ? 'Verifying...' : 'Verify and Enable'}
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter>
+        <p className="text-center text-sm text-muted-foreground w-full">
+          You can always set up 2FA later from your account settings
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

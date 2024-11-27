@@ -1,18 +1,31 @@
-import { motion } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { useThemeStore } from '../../store/useThemeStore';
+import { Button } from '../shared/Button';
+import { cn } from '../../lib/utils';
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  className?: string;
+}
+
+export function ThemeToggle({ className }: ThemeToggleProps) {
   const { theme, toggleTheme } = useThemeStore();
+  const isDark = theme === 'dark';
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+    <Button
+      variant="ghost"
       onClick={toggleTheme}
-      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white"
+      className={cn(
+        "hover:bg-accent hover:text-accent-foreground",
+        className
+      )}
+      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
-      {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-    </motion.button>
+      {isDark ? (
+        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      ) : (
+        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      )}
+    </Button>
   );
 }

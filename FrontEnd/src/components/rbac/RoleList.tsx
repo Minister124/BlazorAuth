@@ -1,49 +1,88 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../shared/Card';
+import { Badge } from '../shared/Badge';
+import { Button } from '../shared/Button';
+import { cn } from '../../lib/utils';
 
-export function RoleList() {
+interface RoleListProps {
+  className?: string;
+  onEditRole?: (roleId: string) => void;
+}
+
+export function RoleList({ className, onEditRole }: RoleListProps) {
   const { roles, deleteRole } = useAuthStore();
 
   return (
-    <div className="space-y-4">
-      {roles.map((role) => (
-        <motion.div
-          key={role.id}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10"
-        >
-          <div className="flex items-center space-x-4">
-            <div
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: role.color }}
-            />
-            <div>
-              <h4 className="font-medium text-white">{role.name}</h4>
-              <p className="text-sm text-white/60">{role.description}</p>
+    <Card className={cn("w-full", className)}>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle>User Roles</CardTitle>
+            <CardDescription>Manage and organize user roles</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {roles.map((role) => (
+          <div
+            key={role.id}
+            className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className="w-4 h-4 rounded-full ring-2 ring-offset-2 ring-offset-background"
+                style={{ backgroundColor: role.color }}
+              />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium">{role.name}</h4>
+                  <Badge
+                    variant="outline"
+                    className="text-xs"
+                    style={{ 
+                      borderColor: role.color,
+                      color: role.color,
+                    }}
+                  >
+                    {role.permissions.length} permissions
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{role.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {onEditRole && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEditRole(role.id)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => deleteRole(role.id)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 text-white/60 hover:text-white rounded-lg hover:bg-white/5"
-            >
-              <Edit2 size={18} />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => deleteRole(role.id)}
-              className="p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10"
-            >
-              <Trash2 size={18} />
-            </motion.button>
+        ))}
+        {roles.length === 0 && (
+          <div className="text-center py-6 text-muted-foreground">
+            No roles have been created yet
           </div>
-        </motion.div>
-      ))}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

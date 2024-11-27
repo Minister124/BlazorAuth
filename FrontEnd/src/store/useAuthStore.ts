@@ -25,6 +25,8 @@ interface AuthState {
   roles: Role[];
   departments: Department[];
   initialized: boolean;
+  isLoading: boolean;
+  isAuthenticated: boolean;
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
@@ -103,6 +105,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   roles: defaultRoles,
   departments: defaultDepartments,
   initialized: false,
+  isLoading: false,
+  isAuthenticated: false,
 
   initialize: async () => {
     const state = get();
@@ -151,7 +155,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const updatedUser = { ...user, lastLogin: new Date() };
       set({ 
         user: updatedUser,
-        users: state.users.map(u => u.id === user.id ? updatedUser : u)
+        users: state.users.map(u => u.id === user.id ? updatedUser : u),
+        isAuthenticated: true
       });
       
       console.log('AuthStore: Login successful');
@@ -206,7 +211,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
 
-  logout: () => set({ user: null }),
+  logout: () => set({ user: null, isAuthenticated: false }),
 
   createUser: async (userData: Partial<User>) => {
     try {
@@ -294,7 +299,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         users: state.users.filter(user => user.id !== userId),
         departments: updatedDepartments,
         // If the deleted user is the current user, log them out
-        user: state.user?.id === userId ? null : state.user
+        user: state.user?.id === userId ? null : state.user,
+        isAuthenticated: state.user?.id === userId ? false : state.isAuthenticated
       };
     });
     toast.success('User deleted successfully');

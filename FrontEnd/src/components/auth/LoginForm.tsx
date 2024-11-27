@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Github, Linkedin } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SocialButton } from './SocialButton';
-import { InputField } from './InputField';
-import toast from 'react-hot-toast';
+import { Button } from '../shared/Button';
+import { Input } from '../shared/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../shared/Card';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -22,86 +23,96 @@ export function LoginForm({ onSuccess, onToggle }: LoginFormProps) {
     setIsLoading(true);
     
     try {
-      console.log('LoginForm: Attempting login with:', { email });
       await login(email, password);
-      console.log('LoginForm: Login successful');
-      toast.success('Successfully logged in!');
+      toast.success('Welcome back!');
       onSuccess();
     } catch (error) {
       console.error('LoginForm error:', error);
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('Invalid credentials');
-      }
+      toast.error(error instanceof Error ? error.message : 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <motion.div 
-      className="glass-panel p-8"
-      whileHover={{ boxShadow: "0 25px 30px -5px rgba(0, 0, 0, 0.2)" }}
-    >
-      <h2 className="text-3xl font-bold text-center mb-2 text-white">Welcome Back</h2>
-      <p className="text-center text-white/60 mb-8">Sign in to your account</p>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+        <p className="text-center text-muted-foreground">
+          Sign in to your account
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            icon={<Mail className="w-4 h-4" />}
+            required
+          />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <InputField
-          icon={<Mail size={20} />}
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={setEmail}
-        />
+          <Input
+            label="Password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            icon={<Lock className="w-4 h-4" />}
+            required
+          />
 
-        <InputField
-          icon={<Lock size={20} />}
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={setPassword}
-        />
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={isLoading}
+          >
+            Sign In
+          </Button>
+        </form>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-3 btn-primary font-semibold disabled:opacity-50"
-          type="submit"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Signing in...' : 'Sign In'}
-        </motion.button>
-      </form>
-
-      <div className="mt-8">
-        <div className="relative">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
+            <div className="w-full border-t border-border"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 text-white/60 bg-[#0A0F1C]/80 backdrop-blur-xl">
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
               Or continue with
             </span>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          <SocialButton icon={<Github size={20} />} onClick={() => {}} provider="GitHub" />
-          <SocialButton icon={<Linkedin size={20} />} onClick={() => {}} provider="LinkedIn" />
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            variant="outline"
+            onClick={() => {}}
+            icon={<Github className="w-4 h-4" />}
+          >
+            GitHub
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {}}
+            icon={<Linkedin className="w-4 h-4" />}
+          >
+            LinkedIn
+          </Button>
         </div>
-      </div>
-
-      <p className="mt-8 text-center text-white/60">
-        Don't have an account?{' '}
-        <button
-          onClick={onToggle}
-          className="text-[#FF3366] hover:text-[#FF6B98] font-semibold"
-        >
-          Sign Up
-        </button>
-      </p>
-    </motion.div>
+      </CardContent>
+      <CardFooter>
+        <p className="text-center text-sm text-muted-foreground w-full">
+          Don't have an account?{' '}
+          <button
+            onClick={onToggle}
+            className="text-primary hover:text-primary/90 font-medium"
+            type="button"
+          >
+            Create one
+          </button>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

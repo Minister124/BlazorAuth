@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { User, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../store/useAuthStore';
+import { Button } from './shared/Button';
+import { Input } from './shared/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './shared/Card';
 
-const passwordStrength = (password: string): { score: number; message: string } => {
+const passwordStrength = (password: string): { score: number; message: string; color: string } => {
   let score = 0;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -12,15 +15,18 @@ const passwordStrength = (password: string): { score: number; message: string } 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  const messages = [
-    'Very weak',
-    'Weak',
-    'Fair',
-    'Good',
-    'Strong'
+  const strengthMap = [
+    { message: 'Very weak', color: 'bg-red-500' },
+    { message: 'Weak', color: 'bg-orange-500' },
+    { message: 'Fair', color: 'bg-yellow-500' },
+    { message: 'Good', color: 'bg-green-500' },
+    { message: 'Strong', color: 'bg-emerald-500' }
   ];
 
-  return { score, message: messages[score - 1] || 'Very weak' };
+  return { 
+    score, 
+    ...strengthMap[score - 1] || strengthMap[0]
+  };
 };
 
 export function AuthForm() {
@@ -32,135 +38,136 @@ export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { login, register } = useAuthStore();
 
-  const strength = passwordStrength(password);
-  const strengthColors = [
-    'bg-red-500',
-    'bg-orange-500',
-    'bg-yellow-500',
-    'bg-green-400',
-    'bg-green-500'
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', { isLogin, email, password: '***' });
     setIsLoading(true);
+
     try {
       if (isLogin) {
         await login(email, password);
+        toast.success('Welcome back!');
       } else {
-        await register(email, password, name);
+        if (passwordStrength(password).score < 3) {
+          toast.error('Please choose a stronger password');
+          return;
+        }
+        await register(name, email, password);
+        toast.success('Account created successfully!');
       }
     } catch (error) {
-      console.error('Form submission error:', error);
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('Authentication failed');
-      }
+      toast.error(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const strength = passwordStrength(password);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300"
-    >
-      <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        {isLogin ? 'Welcome Back' : 'Create Account'}
-      </h2>
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-        {!isLogin && (
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              required
-              aria-label="Full Name"
-            />
-          </div>
-        )}
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            required
-            aria-label="Email Address"
-          />
-        </div>
-        <div className="space-y-2">
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              required
-              aria-label="Password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          {password && (
-            <div className="space-y-1">
-              <div className="flex gap-1 h-1">
-                {[1, 2, 3, 4, 5].map((index) => (
-                  <div
-                    key={index}
-                    className={`flex-1 rounded-full transition-all duration-300 ${
-                      index <= strength.score ? strengthColors[strength.score - 1] : 'bg-gray-200'
-                    }`}
-                  />
-                ))}
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50 dark:bg-gray-900">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {isLogin ? 'Welcome back!' : 'Create an account'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <Input
+                  label="Full Name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  icon={<User className="w-4 h-4" />}
+                  required
+                />
+              )}
+              
+              <Input
+                label="Email Address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                icon={<Mail className="w-4 h-4" />}
+                required
+              />
+
+              <div className="space-y-2">
+                <Input
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  icon={<Lock className="w-4 h-4" />}
+                  required
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  }
+                />
+
+                {!isLogin && password && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                        <div
+                          className={`h-full rounded-full transition-all ${strength.color}`}
+                          style={{ width: `${(strength.score / 5) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {strength.message}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className={`text-sm ${strength.score >= 4 ? 'text-green-600' : 'text-gray-500'}`}>
-                Password strength: {strength.message}
-              </p>
-            </div>
-          )}
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          type="submit"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="animate-spin mr-2" size={20} />
-          ) : null}
-          {isLogin ? 'Sign In' : 'Sign Up'}
-        </motion.button>
-      </form>
-      <p className="mt-6 text-center text-gray-600">
-        {isLogin ? "Don't have an account?" : 'Already have an account?'}
-        <button
-          onClick={() => setIsLogin(!isLogin)}
-          className="ml-2 text-blue-500 hover:text-blue-600 font-medium focus:outline-none focus:underline"
-          type="button"
-        >
-          {isLogin ? 'Sign Up' : 'Sign In'}
-        </button>
-      </p>
-    </motion.div>
+            </form>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              isLoading={isLoading}
+              icon={<ArrowRight className="w-4 h-4" />}
+              className="w-full"
+            >
+              {isLogin ? 'Sign In' : 'Create Account'}
+            </Button>
+            
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+              >
+                {isLogin ? 'Create one' : 'Sign in'}
+              </button>
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
   );
 }
