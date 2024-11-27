@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
@@ -9,7 +9,12 @@ import { useAuthStore } from '../../store/useAuthStore';
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [showMFA, setShowMFA] = useState(false);
-  const { user } = useAuthStore();
+  const {initialize } = useAuthStore();
+
+  useEffect(() => {
+    // Initialize the auth store when component mounts
+    initialize();
+  }, [initialize]);
 
   const slideVariants = {
     enter: (direction: number) => ({

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Shield } from 'lucide-react';
+import { User, Mail, Lock } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { InputField } from './InputField';
 import { PasswordStrength } from './PasswordStrength';

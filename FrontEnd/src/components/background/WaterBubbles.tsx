@@ -1,7 +1,6 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial } from '@react-three/drei';
-import { motion } from 'framer-motion-3d';
 import * as THREE from 'three';
 
 function Bubble({ position }: { position: [number, number, number] }) {
@@ -16,16 +15,10 @@ function Bubble({ position }: { position: [number, number, number] }) {
   });
 
   return (
-    <motion.mesh
+    <mesh
       ref={meshRef}
       position={position}
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{
-        duration: 2,
-        ease: "easeOut",
-        delay: Math.random()
-      }}
+      scale={1}
     >
       <Sphere args={[1, 32, 32]}>
         <MeshDistortMaterial
@@ -37,7 +30,7 @@ function Bubble({ position }: { position: [number, number, number] }) {
           opacity={0.2}
         />
       </Sphere>
-    </motion.mesh>
+    </mesh>
   );
 }
 

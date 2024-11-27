@@ -24,6 +24,8 @@ interface AuthState {
   users: User[];
   roles: Role[];
   departments: Department[];
+  initialized: boolean;
+  initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
@@ -81,82 +83,106 @@ const defaultDepartments: Department[] = [
   },
 ];
 
-// Create a default admin user with a known password for testing
+// Create default admin user with temporary password
 const defaultAdmin: User = {
   id: '1',
   email: 'admin@example.com',
   name: 'Admin User',
-  role: defaultRoles[0], // Admin role
+  role: defaultRoles[0],
   departmentId: defaultDepartments[0].id,
   createdAt: new Date(),
   status: 'active',
   avatar: `https://api.dicebear.com/7.x/initials/svg?seed=Admin User`,
   lastLogin: new Date(),
-  // Pre-generated hash for 'Admin123!@#'
-  hashedPassword: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+  hashedPassword: '' // Will be set during initialization
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   users: [defaultAdmin],
   roles: defaultRoles,
   departments: defaultDepartments,
+  initialized: false,
+
+  initialize: async () => {
+    const state = get();
+    if (state.initialized) return;
+
+    try {
+      const hashedPassword = await bcryptjs.hash('Admin123!@#', 10);
+      const initializedAdmin = { ...defaultAdmin, hashedPassword };
+      set({
+        users: [initializedAdmin],
+        initialized: true
+      });
+      console.log('AuthStore: Initialized with admin user');
+    } catch (error) {
+      console.error('Failed to initialize auth store:', error);
+      throw error; // Propagate error to handle it in login
+    }
+  },
 
   login: async (email: string, password: string) => {
+    const state = get();
+    
     try {
-      console.log('Login attempt with:', { email });
-      const state = useAuthStore.getState();
-      console.log('Current store state:', { 
-        usersCount: state.users.length,
-        users: state.users.map(u => ({ email: u.email, id: u.id }))
-      });
-      
+      if (!state.initialized) {
+        console.log('AuthStore: Initializing during login...');
+        await state.initialize();
+      }
+
+      console.log('AuthStore: Login attempt with:', { email });
       const user = state.users.find(u => u.email === email);
-      console.log('Found user:', user ? { 
-        email: user.email, 
-        id: user.id,
-        hashedPassword: user.hashedPassword 
-      } : 'null');
       
       if (!user) {
-        throw new Error('User not found');
+        console.error('AuthStore: User not found');
+        throw new Error('Invalid email or password');
       }
 
-      console.log('Attempting password comparison...');
-      console.log('Input password:', password);
-      console.log('Stored hash:', user.hashedPassword);
+      console.log('AuthStore: Attempting password comparison...');
       const isValidPassword = await bcryptjs.compare(password, user.hashedPassword);
-      console.log('Password comparison result:', isValidPassword);
+      console.log('AuthStore: Password comparison result:', isValidPassword);
       
       if (!isValidPassword) {
-        throw new Error('Invalid password');
+        console.error('AuthStore: Invalid password');
+        throw new Error('Invalid email or password');
       }
 
-      set({ user: { ...user, lastLogin: new Date() } });
-      console.log('Login successful, updated user state');
+      const updatedUser = { ...user, lastLogin: new Date() };
+      set({ 
+        user: updatedUser,
+        users: state.users.map(u => u.id === user.id ? updatedUser : u)
+      });
+      
+      console.log('AuthStore: Login successful');
       toast.success('Successfully logged in!');
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      console.error('AuthStore: Login error:', error);
       throw error;
     }
   },
 
   register: async (email: string, password: string, name: string) => {
     try {
+      const state = get();
+      if (!state.initialized) {
+        await state.initialize();
+      }
+
       if (!isPasswordValid(password)) {
         throw new Error(
           'Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters'
         );
       }
 
-      const userExists = (state: AuthState) => 
-        state.users.some(user => user.email === email);
+      if (state.users.some(user => user.email === email)) {
+        throw new Error('User with this email already exists');
+      }
 
-      const defaultDepartmentId = defaultDepartments[0].id;
       const hashedPassword = await bcryptjs.hash(password, 10);
+      const defaultDepartmentId = defaultDepartments[0].id;
       
-      const mockUser: User = {
+      const newUser: User = {
         id: String(Math.random()),
         email,
         name,
@@ -169,25 +195,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         hashedPassword
       };
 
-      set((state: AuthState): Partial<AuthState> => {
-        if (userExists(state)) {
-          throw new Error('User with this email already exists');
-        }
-        
-        return {
-          user: mockUser,
-          users: [...state.users, mockUser],
-          departments: state.departments.map(dept => 
-            dept.id === defaultDepartmentId
-              ? { ...dept, employeeCount: dept.employeeCount + 1 }
-              : dept
-          )
-        };
-      });
+      set(state => ({
+        users: [...state.users, newUser]
+      }));
 
       toast.success('Registration successful!');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Registration failed');
+      console.error('AuthStore: Registration error:', error);
       throw error;
     }
   },
@@ -196,6 +210,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   createUser: async (userData: Partial<User>) => {
     try {
+      const state = get();
+      if (!state.initialized) {
+        await state.initialize();
+      }
+
       const defaultDepartmentId = defaultDepartments[0].id;
       const newUser: User = {
         id: String(Math.random()),
@@ -207,16 +226,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         status: userData.status || 'pending',
         avatar: userData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name || '')}`,
         lastLogin: new Date(),
-        hashedPassword: userData.hashedPassword || '' // In real app, this would be properly hashed
+        hashedPassword: userData.hashedPassword || ''
       };
 
-      set((state) => ({
-        users: [...state.users, newUser],
-        departments: state.departments.map(dept => 
-          dept.id === newUser.departmentId
-            ? { ...dept, employeeCount: dept.employeeCount + 1 }
-            : dept
-        )
+      set(state => ({
+        users: [...state.users, newUser]
       }));
 
       toast.success('User created successfully!');
@@ -227,18 +241,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updateUser: (userId: string, userData: Partial<User>) => {
-    set((state) => {
+    set(state => {
       const oldUser = state.users.find(u => u.id === userId);
+      if (!oldUser) {
+        toast.error('User not found');
+        return state;
+      }
+
       const updatedUsers = state.users.map(user => 
         user.id === userId ? { ...user, ...userData } : user
       );
 
       // Update department employee counts if department changed
-      let updatedDepartments = state.departments;
-      if (oldUser && userData.departmentId && oldUser.departmentId !== userData.departmentId) {
+      let updatedDepartments = [...state.departments];
+      if (userData.departmentId && oldUser.departmentId !== userData.departmentId) {
         updatedDepartments = state.departments.map(dept => {
           if (dept.id === oldUser.departmentId) {
-            return { ...dept, employeeCount: dept.employeeCount - 1 };
+            return { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) };
           }
           if (dept.id === userData.departmentId) {
             return { ...dept, employeeCount: dept.employeeCount + 1 };
@@ -257,9 +276,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   deleteUser: (userId: string) => {
-    set(state => ({
-      users: state.users.filter(user => user.id !== userId),
-    }));
+    set(state => {
+      const userToDelete = state.users.find(u => u.id === userId);
+      if (!userToDelete) {
+        toast.error('User not found');
+        return state;
+      }
+
+      // Update department employee count
+      const updatedDepartments = state.departments.map(dept =>
+        dept.id === userToDelete.departmentId
+          ? { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) }
+          : dept
+      );
+
+      return {
+        users: state.users.filter(user => user.id !== userId),
+        departments: updatedDepartments,
+        // If the deleted user is the current user, log them out
+        user: state.user?.id === userId ? null : state.user
+      };
+    });
     toast.success('User deleted successfully');
   },
 

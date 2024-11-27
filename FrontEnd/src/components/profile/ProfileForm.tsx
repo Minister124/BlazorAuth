@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Building, Shield, Save } from 'lucide-react';
+import { User, Mail, Building, Shield } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { User as UserType } from '../../types/user';
@@ -10,11 +10,11 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
-  const { updateUser } = useAuthStore();
+  const { updateUser, departments } = useAuthStore();
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
-    department: user.department || '',
+    departmentId: user.departmentId || '',
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -64,13 +64,19 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <label className="text-sm font-medium text-white/80">Department</label>
           <div className="relative">
             <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" size={20} />
-            <input
-              type="text"
-              value={formData.department}
-              onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+            <select
+              value={formData.departmentId}
+              onChange={(e) => setFormData(prev => ({ ...prev, departmentId: e.target.value }))}
               disabled={!isEditing}
               className="input-field w-full pl-12"
-            />
+            >
+              <option value="">Select Department</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -106,7 +112,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => setIsEditing(false)}
-              className="px-6 py-2 rounded-xl text-white/60 hover:text-white/80"
+              className="btn-secondary px-6"
             >
               Cancel
             </motion.button>
@@ -114,10 +120,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="btn-primary px-6 flex items-center space-x-2"
+              className="btn-primary px-6"
             >
-              <Save size={20} />
-              <span>Save Changes</span>
+              Save Changes
             </motion.button>
           </>
         )}

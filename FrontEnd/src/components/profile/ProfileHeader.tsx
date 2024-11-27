@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera } from 'lucide-react';
 import { User } from '../../types/user';

@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion} from 'framer-motion';
 import { Building, Users, Check } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 
 export function DepartmentAssignment() {
   const { users, departments, updateUser } = useAuthStore();
-  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const handleAssign = () => {
-    if (!selectedDepartment) {
+    if (!selectedDepartmentId) {
       toast.error('Please select a department');
       return;
     }
@@ -22,13 +22,14 @@ export function DepartmentAssignment() {
     selectedUsers.forEach(userId => {
       const user = users.find(u => u.id === userId);
       if (user) {
-        updateUser(userId, { department: selectedDepartment });
+        updateUser(userId, { departmentId: selectedDepartmentId });
       }
     });
 
-    toast.success(`Assigned ${selectedUsers.length} users to ${selectedDepartment}`);
+    const department = departments.find(d => d.id === selectedDepartmentId);
+    toast.success(`Assigned ${selectedUsers.length} users to ${department?.name || selectedDepartmentId}`);
     setSelectedUsers([]);
-    setSelectedDepartment('');
+    setSelectedDepartmentId('');
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -50,80 +51,88 @@ export function DepartmentAssignment() {
           <h2 className="text-2xl font-bold text-gray-800">Department Assignment</h2>
           <p className="text-gray-600 mt-1">Assign users to departments</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Department</option>
-            {departments.map(dept => (
-              <option key={dept.id} value={dept.name}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleAssign}
-            disabled={!selectedDepartment || selectedUsers.length === 0}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
-              selectedDepartment && selectedUsers.length > 0
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Building size={20} />
-            <span>Assign to Department</span>
-          </motion.button>
-        </div>
       </div>
 
-      <div className="space-y-4">
-        <AnimatePresence>
-          {users.map((user) => (
-            <motion.div
-              key={user.id}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 20, opacity: 0 }}
-              className={`flex items-center justify-between p-4 rounded-xl transition-colors ${
-                selectedUsers.includes(user.id)
-                  ? 'bg-blue-50 border-2 border-blue-200'
-                  : 'bg-gray-50 hover:bg-gray-100'
-              }`}
-              onClick={() => toggleUserSelection(user.id)}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <Building className="mr-2" size={20} />
+            Select Department
+          </h3>
+          <div className="space-y-2">
+            {departments.map(department => (
+              <motion.button
+                key={department.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedDepartmentId(department.id)}
+                className={`w-full p-3 rounded-lg border ${
+                  selectedDepartmentId === department.id
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-blue-200'
+                } transition-colors`}
+              >
+                <div className="flex items-center">
+                  <span className="flex-grow text-left">{department.name}</span>
+                  {selectedDepartmentId === department.id && (
+                    <Check size={20} className="text-blue-500" />
+                  )}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <Users className="mr-2" size={20} />
+            Select Users
+          </h3>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {users.map(user => (
+              <motion.button
+                key={user.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => toggleUserSelection(user.id)}
+                className={`w-full p-3 rounded-lg border ${
+                  selectedUsers.includes(user.id)
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-blue-200'
+                } transition-colors`}
+              >
+                <div className="flex items-center">
                   <img
                     src={user.avatar}
                     alt={user.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full mr-3"
                   />
-                  {selectedUsers.includes(user.id) && (
-                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-1">
-                      <Check size={12} />
+                  <div className="flex-grow text-left">
+                    <div>{user.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {departments.find(d => d.id === user.departmentId)?.name || 'No Department'}
                     </div>
+                  </div>
+                  {selectedUsers.includes(user.id) && (
+                    <Check size={20} className="text-blue-500" />
                   )}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800">{user.name}</h3>
-                  <p className="text-sm text-gray-600">{user.email}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Building size={16} className="text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    {user.department || 'No Department'}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-end">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleAssign}
+          disabled={!selectedDepartmentId || selectedUsers.length === 0}
+          className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Assign to Department
+        </motion.button>
       </div>
     </motion.div>
   );

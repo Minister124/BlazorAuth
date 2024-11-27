@@ -22,11 +22,18 @@ export function LoginForm({ onSuccess, onToggle }: LoginFormProps) {
     setIsLoading(true);
     
     try {
+      console.log('LoginForm: Attempting login with:', { email });
       await login(email, password);
+      console.log('LoginForm: Login successful');
       toast.success('Successfully logged in!');
       onSuccess();
     } catch (error) {
-      toast.error('Invalid credentials');
+      console.error('LoginForm error:', error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Invalid credentials');
+      }
     } finally {
       setIsLoading(false);
     }

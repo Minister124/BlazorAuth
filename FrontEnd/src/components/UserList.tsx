@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, UserCog, Edit2, Check, X } from 'lucide-react';
+import { UserCog, Edit2, X, Building } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { User } from '../types/user';
 
 export function UserList() {
-  const { users, updateUser, user: currentUser, roles } = useAuthStore();
+  const { users, updateUser, user: currentUser, roles, departments } = useAuthStore();
   const [editingUser, setEditingUser] = useState<string | null>(null);
 
   const handleRoleChange = (userId: string, roleId: string) => {
@@ -123,9 +123,12 @@ export function UserList() {
                 <div>
                   <h3 className="font-semibold text-gray-800">{user.name}</h3>
                   <p className="text-gray-600 text-sm">{user.email}</p>
-                  {user.department && (
-                    <p className="text-gray-500 text-sm">{user.department}</p>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <Building size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {departments.find(d => d.id === user.departmentId)?.name || 'No Department'}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
