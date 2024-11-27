@@ -2,11 +2,11 @@
   "name": "WASMCRUD",
   "version": "1.0.0",
   "scripts": {
-    "api": "dotnet watch run --project BackEnd/Presentation/WebAPI",
-    "restore": "cd BackEnd && dotnet restore",
-    "install": "cd FrontEnd && npm install",
-    "ui": "cd FrontEnd && npm run dev",
-    "add-migration": "cd BackEnd/Infrastructure && dotnet ef migrations add --startup-project ../../BackEnd/Presentation/WebAPI",
-    "update-database": "cd BackEnd/Infrastructure && dotnet ef database update --startup-project ../../BackEnd/Presentation/WebAPI"
+    "api": "dotnet watch run --project backend/Presentation/WebAPI",
+    "restore": "cd backend && dotnet restore",
+    "install": "cd frontend && npm install",
+    "ui": "cd frontend && npm run start",
+    "add-migration": "cd backend/Infrastructure && dotnet ef migrations add --startup-project ../../BackEnd/Presentation/WebAPI",
+    "update-database": "cd backend/Infrastructure && dotnet ef database update --startup-project ../../BackEnd/Presentation/WebAPI"
   }
 }
