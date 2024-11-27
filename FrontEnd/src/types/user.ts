@@ -15,7 +15,8 @@ export interface User {
   role: Role;
   avatar: string;
   createdAt: Date;
-  department?: string;
+  departmentId: string; // Changed from department string to departmentId for proper relationship
   status: 'active' | 'inactive' | 'pending';
   lastLogin?: Date;
+  hashedPassword: string; // Never store plain passwords
 }

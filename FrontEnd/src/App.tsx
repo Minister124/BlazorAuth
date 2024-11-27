@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { LogOut, Shield, Users, Settings, Building, UserPlus } from 'lucide-react';
