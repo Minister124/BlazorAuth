@@ -7,7 +7,7 @@ import { Input } from './shared/Input';
 import { Select } from './shared/Select';
 import { Badge } from './shared/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from './shared/Card';
-import { User, Role } from '../types/user';
+import { User } from '../types/user';
 import toast from 'react-hot-toast';
 
 interface EditingUser extends Partial<User> {
@@ -49,6 +49,10 @@ export default function UserList() {
       email: user.email,
       role: user.role,
       departmentId: user.departmentId,
+      status: user.status,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
     });
   };
 
@@ -177,16 +181,21 @@ export default function UserList() {
                           className="w-full"
                         />
                         <Select
-                          value={editingUser.role?.id}
+                          value={editingUser.role?.id || ''}
                           onChange={(e) => {
-                            const role = roles.find(r => r.id === e.target.value);
-                            setEditingUser({ ...editingUser, role });
+                            const selectedRole = roles.find(r => r.id === e.target.value);
+                            if (selectedRole) {
+                              setEditingUser({ 
+                                ...editingUser, 
+                                role: selectedRole 
+                              });
+                            }
                           }}
                           className="w-full"
                         >
                           {roles.map((role) => (
                             <option key={role.id} value={role.id}>
-                              {role.name}
+                              {role.name} - {role.description}
                             </option>
                           ))}
                         </Select>
