@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Shield, Lock, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Shield, Lock, Check, Building, User, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Permission, Role } from '../types/user';
 import { toast } from 'react-hot-toast';
@@ -11,6 +11,12 @@ const availablePermissions: { value: Permission; label: string; icon: JSX.Elemen
   { value: 'delete_user', label: 'Delete Users', icon: <Trash2 className="w-4 h-4" /> },
   { value: 'manage_roles', label: 'Manage Roles', icon: <Shield className="w-4 h-4" /> },
   { value: 'view_analytics', label: 'View Analytics', icon: <Lock className="w-4 h-4" /> },
+  { value: 'view_users', label: 'View Users', icon: <User className="w-4 h-4" /> },
+  { value: 'edit_profile', label: 'Edit Profile', icon: <User className="w-4 h-4" /> },
+  { value: 'view_departments', label: 'View Departments', icon: <Building className="w-4 h-4" /> },
+  { value: 'manage_departments', label: 'Manage Departments', icon: <Building className="w-4 h-4" /> },
+  { value: 'assign_department_manager', label: 'Assign Department Manager', icon: <Building className="w-4 h-4" /> },
+  { value: 'manage_settings', label: 'Manage Settings', icon: <Settings className="w-4 h-4" /> },
 ];
 
 export function RoleManagement() {

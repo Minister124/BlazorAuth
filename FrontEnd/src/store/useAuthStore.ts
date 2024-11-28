@@ -33,7 +33,19 @@ const mockRoles: Role[] = [
     id: '1',
     name: 'Admin',
     description: 'Full system access',
-    permissions: ['create_user', 'edit_user', 'delete_user', 'manage_roles', 'view_analytics', 'manage_departments'],
+    permissions: [
+      'create_user',
+      'edit_user',
+      'delete_user',
+      'manage_roles',
+      'view_analytics',
+      'manage_departments',
+      'view_users',
+      'edit_profile',
+      'view_departments',
+      'manage_settings',
+      'assign_department_manager'
+    ],
     color: '#EF4444',
   },
   {
@@ -45,9 +57,21 @@ const mockRoles: Role[] = [
   },
 ];
 
+const mockUser: User = {
+  id: '1',
+  email: 'admin@example.com',
+  name: 'Admin User',
+  role: mockRoles[0],
+  avatar: 'https://ui-avatars.com/api/?name=Admin+User',
+  departmentId: '1',  // Default department ID
+  status: 'active',
+  createdAt: new Date(),
+  lastLogin: new Date()
+};
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  users: [],
+  users: [mockUser],
   roles: mockRoles,
   departments: [],
   initialized: false,
@@ -56,29 +80,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
-      set({ isLoading: true });
-      // In a real app, this would load initial data from the backend
-      set({ initialized: true });
+      const user = get().user;
+      if (user) {
+        set({ initialized: true, isAuthenticated: true });
+      }
     } catch (error) {
       console.error('Failed to initialize:', error);
-      toast.error('Failed to initialize application');
     } finally {
-      set({ isLoading: false });
+      set({ initialized: true });
     }
   },
 
   login: async (email: string, password: string) => {
+    set({ isLoading: true });
     try {
-      set({ isLoading: true });
-      const user = await authApi.login({ email, password });
-      set({ user, isAuthenticated: true });
-      toast.success('Login successful');
+      // Mock login logic
+      if (email === 'admin@example.com' && password === 'admin123') {
+        set({ 
+          user: mockUser,
+          isAuthenticated: true,
+          isLoading: false 
+        });
+        return;
+      }
+      throw new Error('Invalid credentials');
     } catch (error) {
-      console.error('Login failed:', error);
-      toast.error('Invalid credentials');
-      throw error;
-    } finally {
       set({ isLoading: false });
+      throw error;
     }
   },
 

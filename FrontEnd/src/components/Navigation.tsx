@@ -7,6 +7,10 @@ import {
   User,
   X,
   Building,
+  Shield,
+  UserPlus,
+  UsersRound,
+  BarChart
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Button } from './shared/Button';
@@ -34,10 +38,34 @@ export default function Navigation({ onClose }: NavigationProps) {
       permission: 'view_users' as Permission,
     },
     {
+      name: 'Create User',
+      path: '/users/new',
+      icon: UserPlus,
+      permission: 'create_user' as Permission,
+    },
+    {
+      name: 'Roles',
+      path: '/roles',
+      icon: Shield,
+      permission: 'manage_roles' as Permission,
+    },
+    {
+      name: 'Analytics',
+      path: '/analytics',
+      icon: BarChart,
+      permission: 'view_analytics' as Permission,
+    },
+    {
       name: 'Departments',
       path: '/departments',
       icon: Building,
       permission: 'view_departments' as Permission,
+    },
+    {
+      name: 'Assign to Department',
+      path: '/departments/assign',
+      icon: UsersRound,
+      permission: 'assign_department_manager' as Permission,
     },
     {
       name: 'Profile',
@@ -57,9 +85,9 @@ export default function Navigation({ onClose }: NavigationProps) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <Card className="h-full border-0 rounded-none lg:rounded-lg lg:border">
+    <Card className="h-full border-0 rounded-none lg:rounded-lg lg:border relative">
       {/* Close button - only shown on mobile */}
-      <div className="lg:hidden absolute top-4 right-4">
+      <div className="lg:hidden absolute top-2 right-2">
         <Button
           variant="ghost"
           size="sm"
@@ -68,7 +96,7 @@ export default function Navigation({ onClose }: NavigationProps) {
         />
       </div>
 
-      <nav className="space-y-6 p-4">
+      <nav className="space-y-6 p-4 pt-12 lg:pt-4">
         {/* Navigation Links */}
         <div className="space-y-1">
           {navigationItems.map((item) => {

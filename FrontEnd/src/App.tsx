@@ -8,6 +8,13 @@ import Navigation from './components/Navigation';
 import UserList from './components/UserList';
 import { ProfileForm } from './components/profile/ProfileForm';
 import { useAuthStore } from './store/useAuthStore';
+import { LoginPage } from './pages/LoginPage';
+import { DepartmentManagement } from './components/DepartmentManagement';
+import { RoleManagement } from './components/RoleManagement';
+import { UserCreationForm } from './components/UserCreationForm';
+import { Settings } from './components/shared/Settings';
+import { DepartmentAssignment } from './components/DepartmentAssignment';
+import { Analytics } from './components/Analytics';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -16,12 +23,28 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(() => 
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      return savedTheme === 'dark';
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAuthenticated, user, isLoading } = useAuthStore();
   const location = useLocation();
+
+  // Initialize theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', prefersDark);
+      localStorage.setItem('theme', prefersDark ? 'dark' : 'light');
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -47,10 +70,20 @@ export default function App() {
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
-  const toggleTheme = () => setIsDarkMode(prev => !prev);
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    document.documentElement.classList.toggle('dark', newMode);
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+  };
   const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
 
   return (
@@ -116,7 +149,7 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-950 shadow-lg"
+              className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-950 shadow-lg mt-16"
               onClick={e => e.stopPropagation()}
             >
               <Navigation onClose={() => setIsMobileMenuOpen(false)} />
@@ -159,7 +192,13 @@ export default function App() {
                 >
                   <Routes>
                     <Route path="/users" element={<UserList />} />
+                    <Route path="/users/new" element={<UserCreationForm />} />
+                    <Route path="/departments" element={<DepartmentManagement />} />
+                    <Route path="/departments/assign" element={<DepartmentAssignment />} />
+                    <Route path="/roles" element={<RoleManagement />} />
+                    <Route path="/analytics" element={<Analytics />} />
                     <Route path="/profile" element={<ProfileForm user={user} />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<Navigate to="/users" replace />} />
                   </Routes>
                 </motion.div>

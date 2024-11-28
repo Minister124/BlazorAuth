@@ -29,5 +29,5 @@ export interface User {
   departmentId: string; // Changed from department string to departmentId for proper relationship
   status: 'active' | 'inactive' | 'pending';
   lastLogin?: Date;
-  hashedPassword: string; // Never store plain passwords
+  hashedPassword?: string; // Never store plain passwords
 }
