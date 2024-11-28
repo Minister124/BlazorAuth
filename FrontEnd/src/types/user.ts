@@ -6,7 +6,10 @@ export type Permission =
   | 'view_analytics'
   | 'view_users'
   | 'edit_profile'
-  | 'manage_settings';
+  | 'manage_settings'
+  | 'view_departments'
+  | 'manage_departments'
+  | 'assign_department_manager';
 
 export type Role = {
   id: string;

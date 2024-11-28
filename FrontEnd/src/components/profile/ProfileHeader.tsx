@@ -39,7 +39,7 @@ export function ProfileHeader({ user, onAvatarClick, className }: ProfileHeaderP
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold">{user.name}</h1>
               {user.role && (
-                <Badge variant={user.role.name === 'admin' ? 'default' : 'info'} style={{ backgroundColor: user.role.color }}>
+                <Badge variant="secondary" style={{ backgroundColor: user.role.color }}>
                   {user.role.name}
                 </Badge>
               )}
@@ -49,7 +49,7 @@ export function ProfileHeader({ user, onAvatarClick, className }: ProfileHeaderP
               <span>{user.email}</span>
             </div>
             {user.departmentId && (
-              <Badge variant="default" size="sm" className="mt-1">
+              <Badge variant="secondary" size="sm" className="mt-1">
                 {user.departmentId}
               </Badge>
             )}

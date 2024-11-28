@@ -127,11 +127,11 @@ export default function UserList() {
                   {user.email}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="info">
+                  <Badge variant="secondary">
                     {user.role.name}
                   </Badge>
                   {user.departmentId && (
-                    <Badge variant="default">
+                    <Badge variant="secondary">
                       {departments.find(d => d.id === user.departmentId)?.name}
                     </Badge>
                   )}

@@ -6,6 +6,7 @@ import {
   LogOut,
   User,
   X,
+  Building,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Button } from './shared/Button';
@@ -33,6 +34,12 @@ export default function Navigation({ onClose }: NavigationProps) {
       permission: 'view_users' as Permission,
     },
     {
+      name: 'Departments',
+      path: '/departments',
+      icon: Building,
+      permission: 'view_departments' as Permission,
+    },
+    {
       name: 'Profile',
       path: '/profile',
       icon: User,
@@ -47,7 +54,7 @@ export default function Navigation({ onClose }: NavigationProps) {
   ].filter(item => {
     if (!item.permission || !user?.role?.permissions) return false;
     return user.role.permissions.includes(item.permission);
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Card className="h-full border-0 rounded-none lg:rounded-lg lg:border">

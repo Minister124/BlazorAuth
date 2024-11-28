@@ -1,23 +1,8 @@
 import { create } from 'zustand';
 import { User, Role } from '../types/user';
-import { Department } from '../types/department';
+import { Department, CreateDepartmentInput, UpdateDepartmentInput, isDepartmentValid, isDepartment } from '../types/department';
+import { authApi } from '../services/authApi';
 import toast from 'react-hot-toast';
-import bcryptjs from 'bcryptjs';
-
-// Secure password validation
-const isPasswordValid = (password: string): boolean => {
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  
-  return password.length >= minLength && 
-         hasUpperCase && 
-         hasLowerCase && 
-         hasNumbers && 
-         hasSpecialChar;
-};
 
 interface AuthState {
   user: User | null;
@@ -37,211 +22,107 @@ interface AuthState {
   createRole: (roleData: Omit<Role, 'id'>) => void;
   updateRole: (roleId: string, roleData: Partial<Role>) => void;
   deleteRole: (roleId: string) => void;
-  createDepartment: (departmentData: Omit<Department, 'id' | 'createdAt' | 'employeeCount'>) => void;
-  updateDepartment: (departmentId: string, departmentData: Partial<Department>) => void;
-  deleteDepartment: (departmentId: string) => void;
+  createDepartment: (departmentData: CreateDepartmentInput) => Promise<void>;
+  updateDepartment: (departmentId: string, departmentData: UpdateDepartmentInput) => Promise<void>;
+  deleteDepartment: (departmentId: string) => Promise<void>;
 }
 
-const defaultRoles: Role[] = [
+// Mock data for initial state
+const mockRoles: Role[] = [
   {
     id: '1',
     name: 'Admin',
     description: 'Full system access',
-    permissions: ['create_user', 'edit_user', 'delete_user', 'manage_roles', 'view_analytics'],
+    permissions: ['create_user', 'edit_user', 'delete_user', 'manage_roles', 'view_analytics', 'manage_departments'],
     color: '#EF4444',
   },
   {
     id: '2',
-    name: 'Manager',
-    description: 'Department management',
-    permissions: ['create_user', 'edit_user', 'view_analytics'],
-    color: '#F59E0B',
-  },
-  {
-    id: '3',
     name: 'User',
     description: 'Basic access',
-    permissions: ['view_analytics'],
-    color: '#10B981',
+    permissions: ['view_users', 'edit_profile'],
+    color: '#3B82F6',
   },
 ];
 
-const defaultDepartments: Department[] = [
-  {
-    id: '1',
-    name: 'IT Department',
-    description: 'Information Technology',
-    managerId: '1',
-    createdAt: new Date(),
-    employeeCount: 1,
-  },
-  {
-    id: '2',
-    name: 'HR Department',
-    description: 'Human Resources',
-    managerId: '2',
-    createdAt: new Date(),
-    employeeCount: 0,
-  },
-];
-
-// Create default admin user with temporary password
-const defaultAdmin: User = {
-  id: '1',
-  email: 'admin@example.com',
-  name: 'Admin User',
-  role: defaultRoles[0],
-  departmentId: defaultDepartments[0].id,
-  createdAt: new Date(),
-  status: 'active',
-  avatar: `https://api.dicebear.com/7.x/initials/svg?seed=Admin User`,
-  lastLogin: new Date(),
-  hashedPassword: '' // Will be set during initialization
-};
-
-export const useAuthStore = create<AuthState>()((set, get) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  users: [defaultAdmin],
-  roles: defaultRoles,
-  departments: defaultDepartments,
+  users: [],
+  roles: mockRoles,
+  departments: [],
   initialized: false,
   isLoading: false,
   isAuthenticated: false,
 
   initialize: async () => {
-    const state = get();
-    if (state.initialized) return;
-
     try {
-      const hashedPassword = await bcryptjs.hash('Admin123!@#', 10);
-      const initializedAdmin = { ...defaultAdmin, hashedPassword };
-      set({
-        users: [initializedAdmin],
-        initialized: true
-      });
-      console.log('AuthStore: Initialized with admin user');
+      set({ isLoading: true });
+      // In a real app, this would load initial data from the backend
+      set({ initialized: true });
     } catch (error) {
-      console.error('Failed to initialize auth store:', error);
-      throw error; // Propagate error to handle it in login
+      console.error('Failed to initialize:', error);
+      toast.error('Failed to initialize application');
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   login: async (email: string, password: string) => {
-    const state = get();
-    
     try {
-      if (!state.initialized) {
-        console.log('AuthStore: Initializing during login...');
-        await state.initialize();
-      }
-
-      console.log('AuthStore: Login attempt with:', { email });
-      const user = state.users.find(u => u.email === email);
-      
-      if (!user) {
-        console.error('AuthStore: User not found');
-        throw new Error('Invalid email or password');
-      }
-
-      console.log('AuthStore: Attempting password comparison...');
-      const isValidPassword = await bcryptjs.compare(password, user.hashedPassword);
-      console.log('AuthStore: Password comparison result:', isValidPassword);
-      
-      if (!isValidPassword) {
-        console.error('AuthStore: Invalid password');
-        throw new Error('Invalid email or password');
-      }
-
-      const updatedUser = { ...user, lastLogin: new Date() };
-      set({ 
-        user: updatedUser,
-        users: state.users.map(u => u.id === user.id ? updatedUser : u),
-        isAuthenticated: true
-      });
-      
-      console.log('AuthStore: Login successful');
-      toast.success('Successfully logged in!');
+      set({ isLoading: true });
+      const user = await authApi.login({ email, password });
+      set({ user, isAuthenticated: true });
+      toast.success('Login successful');
     } catch (error) {
-      console.error('AuthStore: Login error:', error);
+      console.error('Login failed:', error);
+      toast.error('Invalid credentials');
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   register: async (email: string, password: string, name: string) => {
     try {
-      const state = get();
-      if (!state.initialized) {
-        await state.initialize();
-      }
-
-      if (!isPasswordValid(password)) {
-        throw new Error(
-          'Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters'
-        );
-      }
-
-      if (state.users.some(user => user.email === email)) {
-        throw new Error('User with this email already exists');
-      }
-
-      const hashedPassword = await bcryptjs.hash(password, 10);
-      const defaultDepartmentId = defaultDepartments[0].id;
-      
-      const newUser: User = {
-        id: String(Math.random()),
-        email,
-        name,
-        role: defaultRoles[2], // Default to User role
-        departmentId: defaultDepartmentId,
-        createdAt: new Date(),
-        status: 'active',
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
-        lastLogin: new Date(),
-        hashedPassword
-      };
-
-      set(state => ({
-        users: [...state.users, newUser]
-      }));
-
-      toast.success('Registration successful!');
+      set({ isLoading: true });
+      const user = await authApi.register({ email, password, name });
+      set({ user, isAuthenticated: true });
+      toast.success('Registration successful');
     } catch (error) {
-      console.error('AuthStore: Registration error:', error);
+      console.error('Registration failed:', error);
+      toast.error('Registration failed');
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
-  logout: () => set({ user: null, isAuthenticated: false }),
+  logout: () => {
+    set({ user: null, isAuthenticated: false });
+    toast.success('Logged out successfully');
+  },
 
   createUser: async (userData: Partial<User>) => {
     try {
-      const state = get();
-      if (!state.initialized) {
-        await state.initialize();
-      }
-
-      const defaultDepartmentId = defaultDepartments[0].id;
-      const newUser: User = {
-        id: String(Math.random()),
+      set({ isLoading: true });
+      const newUser = await authApi.createUser({
         email: userData.email || '',
         name: userData.name || '',
-        role: userData.role || defaultRoles[2],
-        departmentId: userData.departmentId || defaultDepartmentId,
-        createdAt: new Date(),
-        status: userData.status || 'pending',
-        avatar: userData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name || '')}`,
-        lastLogin: new Date(),
-        hashedPassword: userData.hashedPassword || ''
-      };
-
+        password: userData.hashedPassword,
+        roleId: userData.role?.id || '2',
+        departmentId: userData.departmentId || '1'
+      });
+      
       set(state => ({
         users: [...state.users, newUser]
       }));
-
-      toast.success('User created successfully!');
+      toast.success('User created successfully');
     } catch (error) {
+      console.error('Failed to create user:', error);
       toast.error('Failed to create user');
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -331,30 +212,65 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     toast.success('Role deleted successfully');
   },
 
-  createDepartment: (departmentData: Omit<Department, 'id' | 'createdAt' | 'employeeCount'>) => {
-    const newDepartment: Department = {
-      id: Date.now().toString(),
-      ...departmentData,
-      createdAt: new Date(),
-      employeeCount: 0,
-    };
-    set(state => ({ departments: [...state.departments, newDepartment] }));
-    toast.success('Department created successfully');
+  createDepartment: async (departmentData: CreateDepartmentInput) => {
+    if (!isDepartmentValid(departmentData)) {
+      toast.error('Invalid department data');
+      return;
+    }
+
+    try {
+      // Simulate API call
+      const newDepartment: Department = {
+        id: Date.now().toString(),
+        ...departmentData,
+        createdAt: new Date(),
+        employeeCount: 0
+      };
+
+      if (!isDepartment(newDepartment)) {
+        throw new Error('Invalid department structure');
+      }
+
+      set(state => ({
+        departments: [...state.departments, newDepartment]
+      }));
+      toast.success('Department created successfully');
+    } catch (error) {
+      toast.error('Failed to create department');
+      throw error;
+    }
   },
 
-  updateDepartment: (departmentId: string, departmentData: Partial<Department>) => {
-    set(state => ({
-      departments: state.departments.map(dept =>
-        dept.id === departmentId ? { ...dept, ...departmentData } : dept
-      ),
-    }));
-    toast.success('Department updated successfully');
+  updateDepartment: async (departmentId: string, departmentData: UpdateDepartmentInput) => {
+    try {
+      set(state => ({
+        departments: state.departments.map(dept => {
+          if (dept.id === departmentId) {
+            const updatedDept = { ...dept, ...departmentData };
+            if (!isDepartment(updatedDept)) {
+              throw new Error('Invalid department structure after update');
+            }
+            return updatedDept;
+          }
+          return dept;
+        })
+      }));
+      toast.success('Department updated successfully');
+    } catch (error) {
+      toast.error('Failed to update department');
+      throw error;
+    }
   },
 
-  deleteDepartment: (departmentId: string) => {
-    set(state => ({
-      departments: state.departments.filter(dept => dept.id !== departmentId),
-    }));
-    toast.success('Department deleted successfully');
+  deleteDepartment: async (departmentId: string) => {
+    try {
+      set(state => ({
+        departments: state.departments.filter(dept => dept.id !== departmentId)
+      }));
+      toast.success('Department deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete department');
+      throw error;
+    }
   },
 }));

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Building, Users, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Users, Plus, Trash2, Edit2, Building } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { Department } from '../types/department';
+import { Department, CreateDepartmentInput } from '../types/department';
 import { Button } from './shared/Button';
 import { Input } from './shared/Input';
 import { Select } from './shared/Select';
@@ -11,24 +11,36 @@ export function DepartmentManagement() {
   const { departments, users, createDepartment, updateDepartment, deleteDepartment, user: currentUser } = useAuthStore();
   const [isCreating, setIsCreating] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateDepartmentInput>({
     name: '',
     description: '',
     managerId: '',
   });
 
-  const canManageDepartments = currentUser?.role.permissions.includes('manage_roles');
+  const canViewDepartments = currentUser?.role.permissions.includes('view_departments');
+  const canManageDepartments = currentUser?.role.permissions.includes('manage_departments');
+  const canAssignManager = currentUser?.role.permissions.includes('assign_department_manager');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Function to get manager details by ID
+  const getManagerDetails = (managerId: string | undefined) => {
+    if (!managerId) return null;
+    return users.find(user => user.id === managerId);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingDepartment) {
-      updateDepartment(editingDepartment.id, formData);
-      setEditingDepartment(null);
-    } else {
-      createDepartment(formData);
+    try {
+      if (editingDepartment) {
+        await updateDepartment(editingDepartment.id, formData);
+        setEditingDepartment(null);
+      } else {
+        await createDepartment(formData);
+      }
+      setIsCreating(false);
+      setFormData({ name: '', description: '', managerId: '' });
+    } catch (error) {
+      console.error('Failed to save department:', error);
     }
-    setIsCreating(false);
-    setFormData({ name: '', description: '', managerId: '' });
   };
 
   const handleEdit = (department: Department) => {
@@ -41,33 +53,48 @@ export function DepartmentManagement() {
     setIsCreating(true);
   };
 
-  if (!canManageDepartments) {
+  const handleDelete = async (departmentId: string) => {
+    try {
+      await deleteDepartment(departmentId);
+    } catch (error) {
+      console.error('Failed to delete department:', error);
+    }
+  };
+
+  if (!canViewDepartments) {
     return (
-      <Card className="text-center">
-        <CardContent className="p-8">
-          <Building className="mx-auto h-12 w-12 text-gray-400" />
-          <CardTitle className="mt-4">Access Restricted</CardTitle>
-          <p className="text-gray-500 dark:text-gray-400">
-            You don't have permission to manage departments.
-          </p>
+      <Card>
+        <CardContent className="py-6">
+          <p className="text-center text-gray-500">You don't have permission to view departments.</p>
         </CardContent>
       </Card>
     );
   }
 
+  // Filter potential managers to those with appropriate permissions
+  const potentialManagers = users.filter(u => 
+    u.role.permissions.includes('manage_departments') || 
+    u.role.permissions.includes('assign_department_manager')
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Department Management
-        </h1>
-        <Button
-          variant="outline"
-          onClick={() => setIsCreating(true)}
-          icon={<Plus className="w-4 h-4" />}
-        >
-          New Department
-        </Button>
+        <div className="flex items-center gap-2">
+          <Building className="w-5 h-5 text-gray-500" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Department Management
+          </h1>
+        </div>
+        {canManageDepartments && (
+          <Button
+            variant="outline"
+            onClick={() => setIsCreating(true)}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            New Department
+          </Button>
+        )}
       </div>
 
       {isCreating && (
@@ -94,21 +121,20 @@ export function DepartmentManagement() {
                 placeholder="Enter department description"
               />
 
-              <Select
-                label="Department Manager"
-                value={formData.managerId}
-                onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                icon={<Users className="w-4 h-4" />}
-              >
-                <option value="">Select a manager</option>
-                {users
-                  .filter(u => u.role.name === 'Manager')
-                  .map(user => (
+              {canAssignManager && (
+                <Select
+                  label="Department Manager"
+                  value={formData.managerId}
+                  onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
+                >
+                  <option value="">Select a manager</option>
+                  {potentialManagers.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.name}
                     </option>
                   ))}
-              </Select>
+                </Select>
+              )}
 
               <div className="flex gap-2">
                 <Button type="submit">
@@ -146,7 +172,7 @@ export function DepartmentManagement() {
                   )}
                   {department.managerId && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Manager ID: {department.managerId}
+                      Manager: {getManagerDetails(department.managerId)?.name || 'Unknown Manager'}
                     </p>
                   )}
                   <div className="flex items-center space-x-2 mt-1">
@@ -157,18 +183,22 @@ export function DepartmentManagement() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(department)}
-                    icon={<Edit2 className="w-4 h-4" />}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteDepartment(department.id)}
-                    icon={<Trash2 className="w-4 h-4" />}
-                  />
+                  {canManageDepartments && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(department)}
+                      icon={<Edit2 className="w-4 h-4" />}
+                    />
+                  )}
+                  {canManageDepartments && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(department.id)}
+                      icon={<Trash2 className="w-4 h-4" />}
+                    />
+                  )}
                 </div>
               </div>
             </CardContent>
