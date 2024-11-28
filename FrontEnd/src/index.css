@@ -9,64 +9,186 @@
 @tailwind utilities;
 
 @layer base {
+  /* Define CSS variables for both themes at root level */
+  :root {
+    /* Common variables */
+    --primary: #2E8EFF;
+    --primary-hover: #0070FF;
+    --primary-active: #0057CC;
+
+    /* Light theme variables */
+    --background-light: #FFFFFF;
+    --card-bg-light: #F8FAFC;
+    --hover-bg-light: #F1F5F9;
+    --border-color-light: #E2E8F0;
+    --text-primary-light: #1E293B;
+    --text-secondary-light: #64748B;
+    --text-tertiary-light: #94A3B8;
+
+    /* Dark theme variables */
+    --background-dark: #0F172A;
+    --card-bg-dark: #1E293B;
+    --hover-bg-dark: #334155;
+    --border-color-dark: #475569;
+    --text-primary-dark: #F8FAFC;
+    --text-secondary-dark: #CBD5E1;
+    --text-tertiary-dark: #94A3B8;
+
+    /* Default to light theme */
+    --background: var(--background-light);
+    --card-bg: var(--card-bg-light);
+    --hover-bg: var(--hover-bg-light);
+    --border-color: var(--border-color-light);
+    --text-primary: var(--text-primary-light);
+    --text-secondary: var(--text-secondary-light);
+    --text-tertiary: var(--text-tertiary-light);
+  }
+
+  /* Dark mode overrides using CSS variables */
+  :root[class~="dark"] {
+    --background: var(--background-dark);
+    --card-bg: var(--card-bg-dark);
+    --hover-bg: var(--hover-bg-dark);
+    --border-color: var(--border-color-dark);
+    --text-primary: var(--text-primary-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --text-tertiary: var(--text-tertiary-dark);
+  }
+
+  /* Apply smooth transitions to specific properties */
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  /* Disable transitions on page load */
+  .preload * {
+    transition: none !important;
+  }
+
+  /* Base styles */
   body {
-    @apply antialiased text-gray-900 font-['Poppins'] bg-[#0A0F1C];
+    @apply font-['Poppins'] antialiased;
+    background-color: var(--background);
+    color: var(--text-primary);
+  }
+
+  /* Base styles for all headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    @apply font-semibold;
   }
 }
 
 @layer components {
+  /* Buttons */
   .btn {
-    @apply px-4 py-2 rounded-xl font-medium transition-all duration-300;
+    @apply px-4 py-2 rounded-lg font-medium;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-[#FF3366] to-[#FF6B98] text-white 
-           hover:from-[#FF4778] hover:to-[#FF83AB] 
-           active:from-[#E62D5C] active:to-[#FF5C89];
+    background-color: var(--primary);
+    @apply text-white;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+  }
+  
+  .btn-primary:active {
+    background-color: var(--primary-active);
   }
 
-  .glass-panel {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20 
-           rounded-2xl shadow-2xl;
+  .btn-secondary {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
   }
 
-  .input-field {
-    @apply bg-white/5 border border-white/10 text-white 
-           placeholder-white/50 rounded-xl px-4 py-3
-           focus:ring-2 focus:ring-[#FF3366] focus:border-transparent
-           transition-all duration-300;
+  .btn-secondary:hover {
+    background-color: var(--hover-bg);
   }
-}
 
-/* Smooth animations */
-* {
-  @apply transition-all duration-300;
-}
-
-/* Input focus animations */
-input:focus {
-  @apply ring-offset-2 ring-opacity-50;
-  animation: glow 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 5px #FF3366, 0 0 10px #FF3366, 0 0 15px #FF6B98;
+  /* Cards */
+  .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    @apply rounded-lg shadow-md;
   }
-  to {
-    box-shadow: 0 0 10px #FF3366, 0 0 15px #FF6B98, 0 0 20px #FF6B98;
+
+  .card:hover {
+    @apply shadow-lg;
+    background-color: var(--hover-bg);
+  }
+
+  /* Form inputs */
+  .input {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    @apply w-full px-4 py-2 rounded-lg;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  /* Navigation */
+  .nav-item {
+    color: var(--text-secondary);
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg;
+  }
+
+  .nav-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background-color: var(--primary);
+    @apply text-white;
+  }
+
+  /* Table styles */
+  .table {
+    @apply w-full;
+  }
+
+  .table th {
+    background-color: var(--card-bg);
+    color: var(--text-secondary);
+    @apply px-4 py-2 text-left font-medium;
+  }
+
+  .table td {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    @apply px-4 py-2;
+  }
+
+  .table tr:hover {
+    background-color: var(--hover-bg);
   }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  @apply w-2;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background-color: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/20 rounded-full hover:bg-white/30;
+  background-color: var(--hover-bg);
+  @apply rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-color);
 }

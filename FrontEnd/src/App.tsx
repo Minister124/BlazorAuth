@@ -36,14 +36,24 @@ export default function App() {
 
   // Initialize theme on mount
   useEffect(() => {
+    // Disable transitions on page load
+    document.documentElement.classList.add('preload');
+
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+      setIsDarkMode(savedTheme === 'dark');
     } else {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.documentElement.classList.toggle('dark', prefersDark);
+      setIsDarkMode(prefersDark);
       localStorage.setItem('theme', prefersDark ? 'dark' : 'light');
     }
+
+    // Remove preload class after a short delay to enable transitions
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('preload');
+    });
   }, []);
 
   useEffect(() => {
@@ -79,20 +89,60 @@ export default function App() {
   }
 
   const toggleTheme = () => {
+    // Add preload class to disable transitions during theme change
+    document.documentElement.classList.add('preload');
+    
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
     document.documentElement.classList.toggle('dark', newMode);
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
+
+    // Remove preload class after a short delay to re-enable transitions
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('preload');
+    });
   };
   const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <Toaster 
-        position="top-right" 
+        position="bottom-right"
+        reverseOrder={false}
+        gutter={8}
+        containerStyle={{
+          bottom: 40,
+          right: 40,
+          font: 'Poppins'
+        }}
         toastOptions={{
           className: 'dark:bg-gray-800 dark:text-white',
           duration: 4000,
+          style: {
+            background: 'var(--card-bg)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+          success: {
+            icon: '✅',
+            style: {
+              border: '1px solid var(--border-success)',
+            },
+          },
+          error: {
+            icon: '❌',
+            style: {
+              border: '1px solid var(--border-error)',
+            },
+          },
+          loading: {
+            icon: '⏳',
+          },
+          custom: {
+            duration: 4000,
+          }
         }}
       />
       
