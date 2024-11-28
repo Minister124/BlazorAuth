@@ -22,7 +22,7 @@ export default function UserList() {
   const [editingUser, setEditingUser] = useState<EditingUser | null>(null);
 
   const { users, departments, roles, updateUser, deleteUser } = useAuthStore();
-  const { success, error, promise } = useNotification();
+  const { promise } = useNotification();
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -71,7 +71,6 @@ export default function UserList() {
       );
       setEditingUser(null);
     } catch (err) {
-      error('An unexpected error occurred while updating the user');
       console.error('Update user error:', err);
     }
   };
@@ -92,7 +91,6 @@ export default function UserList() {
         }
       );
     } catch (err) {
-      error('An unexpected error occurred while deleting the user');
       console.error('Delete user error:', err);
     }
   };

@@ -17,11 +17,11 @@ interface AuthState {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   createUser: (userData: Partial<User>) => Promise<void>;
-  updateUser: (userId: string, userData: Partial<User>) => void;
-  deleteUser: (userId: string) => void;
-  createRole: (roleData: Omit<Role, 'id'>) => void;
-  updateRole: (roleId: string, roleData: Partial<Role>) => void;
-  deleteRole: (roleId: string) => void;
+  updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
+  createRole: (roleData: Omit<Role, 'id'>) => Promise<void>;
+  updateRole: (roleId: string, roleData: Partial<Role>) => Promise<void>;
+  deleteRole: (roleId: string) => Promise<void>;
   createDepartment: (departmentData: CreateDepartmentInput) => Promise<void>;
   updateDepartment: (departmentId: string, departmentData: UpdateDepartmentInput) => Promise<void>;
   deleteDepartment: (departmentId: string) => Promise<void>;
@@ -154,96 +154,125 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  updateUser: (userId: string, userData: Partial<User>) => {
-    set(state => {
-      const oldUser = state.users.find(u => u.id === userId);
-      if (!oldUser) {
-        toast.error('User not found');
-        return state;
-      }
-
-      const updatedUsers = state.users.map(user => 
-        user.id === userId ? { ...user, ...userData } : user
-      );
-
-      // Update department employee counts if department changed
-      let updatedDepartments = [...state.departments];
-      if (userData.departmentId && oldUser.departmentId !== userData.departmentId) {
-        updatedDepartments = state.departments.map(dept => {
-          if (dept.id === oldUser.departmentId) {
-            return { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) };
+  updateUser: async (userId: string, userData: Partial<User>) => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        set(state => {
+          const oldUser = state.users.find(u => u.id === userId);
+          if (!oldUser) {
+            reject(new Error('User not found'));
+            return state;
           }
-          if (dept.id === userData.departmentId) {
-            return { ...dept, employeeCount: dept.employeeCount + 1 };
+
+          const updatedUsers = state.users.map(user => 
+            user.id === userId ? { ...user, ...userData } : user
+          );
+
+          // Update department employee counts if department changed
+          let updatedDepartments = [...state.departments];
+          if (userData.departmentId && oldUser.departmentId !== userData.departmentId) {
+            updatedDepartments = state.departments.map(dept => {
+              if (dept.id === oldUser.departmentId) {
+                return { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) };
+              }
+              if (dept.id === userData.departmentId) {
+                return { ...dept, employeeCount: dept.employeeCount + 1 };
+              }
+              return dept;
+            });
           }
-          return dept;
+
+          return {
+            users: updatedUsers,
+            departments: updatedDepartments,
+            user: state.user?.id === userId ? { ...state.user, ...userData } : state.user
+          };
         });
+        resolve();
+      } catch (error) {
+        reject(error);
       }
-
-      return {
-        users: updatedUsers,
-        departments: updatedDepartments,
-        user: state.user?.id === userId ? { ...state.user, ...userData } : state.user
-      };
     });
-    toast.success('User updated successfully!');
   },
 
-  deleteUser: (userId: string) => {
-    set(state => {
-      const userToDelete = state.users.find(u => u.id === userId);
-      if (!userToDelete) {
-        toast.error('User not found');
-        return state;
+  deleteUser: async (userId: string) => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        set(state => {
+          const userToDelete = state.users.find(u => u.id === userId);
+          if (!userToDelete) {
+            reject(new Error('User not found'));
+            return state;
+          }
+
+          // Update department employee count
+          const updatedDepartments = state.departments.map(dept =>
+            dept.id === userToDelete.departmentId
+              ? { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) }
+              : dept
+          );
+
+          return {
+            users: state.users.filter(user => user.id !== userId),
+            departments: updatedDepartments,
+            // If the deleted user is the current user, log them out
+            user: state.user?.id === userId ? null : state.user,
+            isAuthenticated: state.user?.id === userId ? false : state.isAuthenticated
+          };
+        });
+        resolve();
+      } catch (error) {
+        reject(error);
       }
-
-      // Update department employee count
-      const updatedDepartments = state.departments.map(dept =>
-        dept.id === userToDelete.departmentId
-          ? { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) }
-          : dept
-      );
-
-      return {
-        users: state.users.filter(user => user.id !== userId),
-        departments: updatedDepartments,
-        // If the deleted user is the current user, log them out
-        user: state.user?.id === userId ? null : state.user,
-        isAuthenticated: state.user?.id === userId ? false : state.isAuthenticated
-      };
     });
-    toast.success('User deleted successfully');
   },
 
-  createRole: (roleData: Omit<Role, 'id'>) => {
-    const newRole: Role = {
-      id: Date.now().toString(),
-      ...roleData,
-    };
-    set(state => ({ roles: [...state.roles, newRole] }));
-    toast.success('Role created successfully');
+  createRole: async (roleData: Omit<Role, 'id'>) => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const newRole: Role = {
+          id: Date.now().toString(),
+          ...roleData,
+        };
+        set(state => ({ roles: [...state.roles, newRole] }));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   },
 
-  updateRole: (roleId: string, roleData: Partial<Role>) => {
-    set(state => ({
-      roles: state.roles.map(role =>
-        role.id === roleId ? { ...role, ...roleData } : role
-      ),
-    }));
-    toast.success('Role updated successfully');
+  updateRole: async (roleId: string, roleData: Partial<Role>) => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        set(state => ({
+          roles: state.roles.map(role =>
+            role.id === roleId ? { ...role, ...roleData } : role
+          ),
+        }));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   },
 
-  deleteRole: (roleId: string) => {
-    set(state => ({
-      roles: state.roles.filter(role => role.id !== roleId),
-    }));
-    toast.success('Role deleted successfully');
+  deleteRole: async (roleId: string) => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        set(state => ({
+          roles: state.roles.filter(role => role.id !== roleId),
+        }));
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   },
 
   createDepartment: async (departmentData: CreateDepartmentInput) => {
     if (!isDepartmentValid(departmentData)) {
-      toast.error('Invalid department data');
-      return;
+      throw new Error('Invalid department data');
     }
 
     try {
