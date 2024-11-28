@@ -8,7 +8,7 @@ import { Select } from './shared/Select';
 import { Badge } from './shared/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from './shared/Card';
 import { User } from '../types/user';
-import toast from 'react-hot-toast';
+import useNotification from '../hooks/useNotification';
 
 interface EditingUser extends Partial<User> {
   id: string;
@@ -22,6 +22,7 @@ export default function UserList() {
   const [editingUser, setEditingUser] = useState<EditingUser | null>(null);
 
   const { users, departments, roles, updateUser, deleteUser } = useAuthStore();
+  const { success, error, promise } = useNotification();
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -60,22 +61,39 @@ export default function UserList() {
     if (!editingUser) return;
 
     try {
-      await updateUser(editingUser.id, editingUser);
-      toast.success('User updated successfully');
+      await promise(
+        updateUser(editingUser.id, editingUser),
+        {
+          loading: 'Updating user...',
+          success: `Successfully updated ${editingUser.name}'s profile`,
+          error: 'Failed to update user. Please try again.'
+        }
+      );
       setEditingUser(null);
-    } catch (error) {
-      toast.error('Failed to update user');
+    } catch (err) {
+      error('An unexpected error occurred while updating the user');
+      console.error('Update user error:', err);
     }
   };
 
   const handleDelete = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${user.name}'s account? This action cannot be undone.`)) return;
 
     try {
-      await deleteUser(userId);
-      toast.success('User deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete user');
+      await promise(
+        deleteUser(userId),
+        {
+          loading: 'Deleting user...',
+          success: `Successfully deleted ${user.name}'s account`,
+          error: 'Failed to delete user. Please try again.'
+        }
+      );
+    } catch (err) {
+      error('An unexpected error occurred while deleting the user');
+      console.error('Delete user error:', err);
     }
   };
 
