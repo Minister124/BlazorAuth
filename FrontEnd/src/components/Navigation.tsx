@@ -2,10 +2,7 @@ import { motion } from 'framer-motion';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Users,
-  UserPlus,
   Settings,
-  Shield,
-  Building,
   LogOut,
   User,
   X,
@@ -13,6 +10,7 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { Button } from './shared/Button';
 import { Card } from './shared/Card';
+import { Permission } from '../types/user';
 
 interface NavigationProps {
   onClose: () => void;
@@ -22,26 +20,34 @@ export default function Navigation({ onClose }: NavigationProps) {
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
-  const navigationItems = [
+  const navigationItems: Array<{
+    name: string;
+    path: string;
+    icon: React.ElementType;
+    permission: Permission;
+  }> = [
     {
       name: 'Users',
       path: '/users',
       icon: Users,
-      permission: 'view_users',
+      permission: 'view_users' as Permission,
     },
     {
       name: 'Profile',
       path: '/profile',
       icon: User,
-      permission: 'edit_profile',
+      permission: 'edit_profile' as Permission,
     },
     {
       name: 'Settings',
       path: '/settings',
       icon: Settings,
-      permission: 'manage_settings',
+      permission: 'manage_settings' as Permission,
     },
-  ].filter(item => user?.permissions?.includes(item.permission));
+  ].filter(item => {
+    if (!item.permission || !user?.role?.permissions) return false;
+    return user.role.permissions.includes(item.permission);
+  });
 
   return (
     <Card className="h-full border-0 rounded-none lg:rounded-lg lg:border">

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Check, X, Info } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Permission } from '../../types/user';
@@ -56,7 +55,7 @@ export function PermissionMatrix({ className }: PermissionMatrixProps) {
                       <span>{permission.label}</span>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         className="h-5 w-5 text-muted-foreground hover:text-foreground"
                         title={permission.description}
                       >
@@ -70,7 +69,7 @@ export function PermissionMatrix({ className }: PermissionMatrixProps) {
                         <div className="flex justify-center">
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             className="h-8 w-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
                           >
                             <Check className="h-4 w-4" />
@@ -80,7 +79,7 @@ export function PermissionMatrix({ className }: PermissionMatrixProps) {
                         <div className="flex justify-center">
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <X className="h-4 w-4" />

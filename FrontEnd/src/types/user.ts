@@ -1,4 +1,12 @@
-export type Permission = 'create_user' | 'edit_user' | 'delete_user' | 'manage_roles' | 'view_analytics';
+export type Permission = 
+  | 'create_user' 
+  | 'edit_user' 
+  | 'delete_user' 
+  | 'manage_roles' 
+  | 'view_analytics'
+  | 'view_users'
+  | 'edit_profile'
+  | 'manage_settings';
 
 export type Role = {
   id: string;

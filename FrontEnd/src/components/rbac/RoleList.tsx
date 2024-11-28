@@ -1,4 +1,3 @@
-import React from 'react';
 import { Edit2, Trash2, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../shared/Card';
@@ -42,7 +41,7 @@ export function RoleList({ className, onEditRole }: RoleListProps) {
                 <div className="flex items-center gap-2">
                   <h4 className="font-medium">{role.name}</h4>
                   <Badge
-                    variant="outline"
+                    variant="secondary"
                     className="text-xs"
                     style={{ 
                       borderColor: role.color,
@@ -59,7 +58,7 @@ export function RoleList({ className, onEditRole }: RoleListProps) {
               {onEditRole && (
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   onClick={() => onEditRole(role.id)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -68,7 +67,7 @@ export function RoleList({ className, onEditRole }: RoleListProps) {
               )}
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => deleteRole(role.id)}
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >

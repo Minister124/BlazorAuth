@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Building, Users, Plus, Trash2, Edit2 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Department } from '../types/department';
@@ -145,9 +144,9 @@ export function DepartmentManagement() {
                       {department.description}
                     </p>
                   )}
-                  {department.manager && (
+                  {department.managerId && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Manager: {department.manager.name}
+                      Manager ID: {department.managerId}
                     </p>
                   )}
                   <div className="flex items-center space-x-2 mt-1">

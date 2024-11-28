@@ -2,10 +2,12 @@ import React from 'react';
 import { Button } from '../shared/Button';
 import { cn } from '../../lib/utils';
 
-interface SocialButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface SocialButtonProps {
   icon: React.ReactNode;
   provider: string;
   isLoading?: boolean;
+  className?: string;
+  onClick?: () => void;
 }
 
 export function SocialButton({ 
@@ -13,19 +15,20 @@ export function SocialButton({
   provider, 
   className,
   isLoading,
-  ...props 
+  onClick
 }: SocialButtonProps) {
   return (
     <Button
       variant="outline"
+      size="md"
       className={cn(
         "w-full bg-background hover:bg-accent hover:text-accent-foreground",
         className
       )}
-      icon={icon}
       isLoading={isLoading}
-      {...props}
+      onClick={onClick}
     >
+      {icon}
       <span className="ml-2">{provider}</span>
     </Button>
   );

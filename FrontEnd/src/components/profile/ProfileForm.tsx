@@ -12,7 +12,6 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../shared/Card';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
-import { Badge } from '../shared/Badge';
 import { useAuthStore } from '../../store/useAuthStore';
 import { User } from '../../types/user';
 import { toast } from 'react-hot-toast';

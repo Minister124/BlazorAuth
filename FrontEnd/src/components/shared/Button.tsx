@@ -1,5 +1,5 @@
-import { ButtonHTMLAttributes, forwardRef, ComponentPropsWithoutRef } from 'react';
-import { motion, MotionProps, AnimationDefinition } from 'framer-motion';
+import { forwardRef, ComponentPropsWithoutRef } from 'react';
+import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
