@@ -1,8 +1,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
-import { Sun, Moon, Menu, Loader2 } from 'lucide-react';
+import { Toaster, useToasterStore, toast } from 'react-hot-toast';
+import { Sun, Moon, Menu, Loader2, X } from 'lucide-react';
 
 import Navigation from './components/Navigation';
 import UserList from './components/UserList';
@@ -22,6 +22,24 @@ const pageVariants = {
   exit: { opacity: 0, y: -20 }
 };
 
+// Toast component
+const ToastComponent: React.FC<{ t: any; dismiss: () => void }> = ({ t, dismiss }) => (
+  <div className="relative flex items-center justify-between gap-2 group">
+    <div className="flex-1">{t.message}</div>
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss();
+      }}
+      className="p-1.5 transition-opacity rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+      aria-label="Close notification"
+    >
+      <X className="w-4 h-4" />
+    </button>
+  </div>
+);
+
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -33,6 +51,16 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAuthenticated, user, isLoading } = useAuthStore();
   const location = useLocation();
+  const { toasts } = useToasterStore();
+
+  // Limit the maximum number of notifications
+  useEffect(() => {
+    const TOAST_LIMIT = 3;
+    toasts
+      .filter((t) => t.visible) // Only consider visible toasts
+      .slice(TOAST_LIMIT) // Get the excess toasts beyond the limit
+      .forEach((t) => toast.dismiss(t.id)); // Dismiss excess toasts using toast.dismiss
+  }, [toasts]);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -106,45 +134,38 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Toaster 
+      <Toaster
         position="bottom-right"
         reverseOrder={false}
         gutter={8}
         containerStyle={{
-          bottom: 40,
-          right: 40,
-          font: 'Poppins'
+          bottom: 20,
+          right: 20,
         }}
         toastOptions={{
-          className: 'dark:bg-gray-800 dark:text-white',
+          className: 'dark:bg-gray-800 dark:text-white bg-white text-gray-900 shadow-lg border dark:border-gray-700',
           duration: 4000,
           style: {
-            background: 'var(--card-bg)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            padding: '16px',
+            padding: '12px',
             borderRadius: '8px',
-          },
-          success: {
-            icon: '✅',
-            style: {
-              border: '1px solid var(--border-success)',
-            },
-          },
-          error: {
-            icon: '❌',
-            style: {
-              border: '1px solid var(--border-error)',
-            },
-          },
-          loading: {
-            icon: '⏳',
-          },
-          custom: {
-            duration: 4000,
+            minWidth: '300px',
           }
         }}
-      />
+      >
+        {(t) => {
+          const handleDismiss = () => {
+            toast.remove(t.id);
+            toast.dismiss(t.id);
+          };
+          
+          return (
+            <ToastComponent
+              t={t}
+              dismiss={handleDismiss}
+            />
+          );
+        }}
+      </Toaster>
       
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm backdrop-blur-sm bg-opacity-80 dark:bg-opacity-80">
