@@ -27,85 +27,33 @@ interface AuthState {
   deleteDepartment: (departmentId: string) => Promise<void>;
 }
 
-// Mock data for initial state
-const mockRoles: Role[] = [
-  {
-    id: '1',
-    name: 'Admin',
-    description: 'Full system access',
-    permissions: [
-      'create_user',
-      'edit_user',
-      'delete_user',
-      'manage_roles',
-      'view_analytics',
-      'manage_departments',
-      'view_users',
-      'edit_profile',
-      'view_departments',
-      'manage_settings',
-      'assign_department_manager'
-    ],
-    color: '#EF4444',
-  },
-  {
-    id: '2',
-    name: 'User',
-    description: 'Basic access',
-    permissions: ['view_users', 'edit_profile'],
-    color: '#3B82F6',
-  },
-];
-
-const mockUser: User = {
-  id: '1',
-  email: 'admin@example.com',
-  name: 'Admin User',
-  role: mockRoles[0],
-  avatar: 'https://ui-avatars.com/api/?name=Admin+User',
-  departmentId: '1',  // Default department ID
-  status: 'active',
-  createdAt: new Date(),
-  lastLogin: new Date()
-};
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  users: [mockUser],
-  roles: mockRoles,
+  users: [],
+  roles: [],
   departments: [],
   initialized: false,
-  isLoading: false,
+  isLoading: true,
   isAuthenticated: false,
 
   initialize: async () => {
     try {
-      const user = get().user;
-      if (user) {
-        set({ initialized: true, isAuthenticated: true });
-      }
+      const user = await authApi.validateToken();
+      set({ user, isAuthenticated: true, initialized: true, isLoading: false });
     } catch (error) {
-      console.error('Failed to initialize:', error);
-    } finally {
-      set({ initialized: true });
+      set({ initialized: true, isLoading: false });
     }
   },
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      // Mock login logic
-      if (email === 'admin@example.com' && password === 'admin123') {
-        set({ 
-          user: mockUser,
-          isAuthenticated: true,
-          isLoading: false 
-        });
-        return;
-      }
-      throw new Error('Invalid credentials');
+      const user = await authApi.login({ email, password });
+      set({ user, isAuthenticated: true, isLoading: false });
+      toast.success('Login successful');
     } catch (error) {
       set({ isLoading: false });
+      toast.error('Invalid credentials');
       throw error;
     }
   },
@@ -137,8 +85,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: userData.email || '',
         name: userData.name || '',
         password: userData.hashedPassword,
-        roleId: userData.role?.id || '2',
-        departmentId: userData.departmentId || '1'
+        roleId: userData.role?.id || '',
+        departmentId: userData.departmentId || ''
       });
       
       set(state => ({
