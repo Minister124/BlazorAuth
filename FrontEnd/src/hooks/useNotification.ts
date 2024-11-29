@@ -1,22 +1,25 @@
-import toast, { Toast } from 'react-hot-toast';
-import { ReactNode } from 'react';
+import toast, { ToastOptions } from 'react-hot-toast';
 
-interface NotificationOptions {
+interface NotificationOptions extends Partial<ToastOptions> {
   duration?: number;
-  icon?: ReactNode;
 }
+
+const defaultOptions: ToastOptions = {
+  style: {
+    background: 'var(--card-bg)',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-color)',
+  },
+  duration: 4000,
+  position: 'top-right',
+};
 
 const useNotification = () => {
   const showNotification = (message: string, type: 'success' | 'error' | 'loading' | 'custom' = 'custom', options: NotificationOptions = {}) => {
-    const toastId = toast(message, {
-      duration: options.duration || 4000,
-      icon: options.icon,
-      style: {
-        background: 'var(--card-bg)',
-        color: 'var(--text-primary)',
-        border: '1px solid var(--border-color)',
-      },
-    });
+    const toastId = toast[type](message, {
+      ...defaultOptions,
+      ...options,
+    } as ToastOptions);
 
     return toastId;
   };
@@ -64,13 +67,9 @@ const useNotification = () => {
         error: messages.error,
       },
       {
-        style: {
-          background: 'var(--card-bg)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border-color)',
-        },
+        ...defaultOptions,
         ...options,
-      }
+      } as ToastOptions
     );
   };
 
