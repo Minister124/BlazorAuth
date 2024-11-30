@@ -89,16 +89,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         departmentId: userData.departmentId || ''
       });
       
-      set(state => ({
-        users: [...state.users, newUser]
-      }));
+      // Use get() to ensure we have the latest state
+      const currentUsers = get().users;
+      set({ users: [...currentUsers, newUser], isLoading: false });
       toast.success('User created successfully');
     } catch (error) {
       console.error('Failed to create user:', error);
       toast.error('Failed to create user');
-      throw error;
-    } finally {
       set({ isLoading: false });
+      throw error;
     }
   },
 
@@ -144,35 +143,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   deleteUser: async (userId: string) => {
-    return new Promise<void>((resolve, reject) => {
-      try {
-        set(state => {
-          const userToDelete = state.users.find(u => u.id === userId);
-          if (!userToDelete) {
-            reject(new Error('User not found'));
-            return state;
-          }
-
-          // Update department employee count
-          const updatedDepartments = state.departments.map(dept =>
-            dept.id === userToDelete.departmentId
-              ? { ...dept, employeeCount: Math.max(0, dept.employeeCount - 1) }
-              : dept
-          );
-
-          return {
-            users: state.users.filter(user => user.id !== userId),
-            departments: updatedDepartments,
-            // If the deleted user is the current user, log them out
-            user: state.user?.id === userId ? null : state.user,
-            isAuthenticated: state.user?.id === userId ? false : state.isAuthenticated
-          };
+    try {
+      set({ isLoading: true });
+      await authApi.deleteUser(userId);
+      
+      // Use get() to ensure we have the latest state
+      const { users, departments } = get();
+      const userToDelete = users.find(u => u.id === userId);
+      
+      if (userToDelete) {
+        // Update users list
+        const updatedUsers = users.filter(user => user.id !== userId);
+        
+        // Update department counts if needed
+        const updatedDepartments = departments.map(dept => 
+          dept.id === userToDelete.departmentId
+            ? { ...dept, employeeCount: (dept.employeeCount || 0) - 1 }
+            : dept
+        );
+        
+        set({ 
+          users: updatedUsers, 
+          departments: updatedDepartments,
+          isLoading: false 
         });
-        resolve();
-      } catch (error) {
-        reject(error);
+        toast.success('User deleted successfully');
       }
-    });
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      toast.error('Failed to delete user');
+      set({ isLoading: false });
+      throw error;
+    }
   },
 
   createRole: async (roleData: Omit<Role, 'id'>) => {
