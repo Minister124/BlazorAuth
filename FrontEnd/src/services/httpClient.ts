@@ -40,26 +40,30 @@ httpClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem(API_CONFIG.TOKEN.REFRESH_KEY);
         if (!refreshToken) {
+          localStorage.removeItem(API_CONFIG.TOKEN.KEY);
+          localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
+          window.location.href = '/login';
           throw new Error('No refresh token available');
         }
 
         // Try to refresh the token
-        const response = await axios.post(
+        const response = await axios.post<{ token: string }>(
           `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.REFRESH}`,
-          { refreshToken }
+          { refreshToken },
+          { headers: { 'Content-Type': 'application/json' } }
         );
 
-        const { token } = response.data;
-        localStorage.setItem(API_CONFIG.TOKEN.KEY, token);
+        const newToken = response.data.token;
+        localStorage.setItem(API_CONFIG.TOKEN.KEY, newToken);
 
-        // Retry the original request
+        // Retry the original request with the new token
         if (originalRequest) {
-          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           originalRequest.headers['X-Retry'] = 'true';
-          return httpClient(originalRequest);
+          return axios(originalRequest);
         }
       } catch (refreshError) {
-        // If refresh fails, clear tokens and redirect to login
+        // If refresh token fails, redirect to login
         localStorage.removeItem(API_CONFIG.TOKEN.KEY);
         localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
         window.location.href = '/login';
@@ -68,32 +72,18 @@ httpClient.interceptors.response.use(
     }
 
     // Handle other errors
-    let errorMessage = API_CONFIG.ERROR_MESSAGES.DEFAULT;
-    
-    if (error.response) {
-      // Server responded with error
-      switch (error.response.status) {
-        case 400:
-          errorMessage = error.response.data?.message || API_CONFIG.ERROR_MESSAGES.VALIDATION;
-          break;
-        case 401:
-          errorMessage = API_CONFIG.ERROR_MESSAGES.UNAUTHORIZED;
-          break;
-        case 403:
-          errorMessage = API_CONFIG.ERROR_MESSAGES.FORBIDDEN;
-          break;
-        case 404:
-          errorMessage = API_CONFIG.ERROR_MESSAGES.NOT_FOUND;
-          break;
-        default:
-          errorMessage = error.response.data?.message || API_CONFIG.ERROR_MESSAGES.DEFAULT;
-      }
-    } else if (error.request) {
-      // Request made but no response
-      errorMessage = API_CONFIG.ERROR_MESSAGES.NETWORK;
+    if (error.response?.data?.message) {
+      toast.error(error.response.data.message);
+    } else if (error.response?.status === 403) {
+      toast.error(API_CONFIG.ERROR_MESSAGES.FORBIDDEN);
+    } else if (error.response?.status === 404) {
+      toast.error(API_CONFIG.ERROR_MESSAGES.NOT_FOUND);
+    } else if (!error.response) {
+      toast.error(API_CONFIG.ERROR_MESSAGES.NETWORK);
+    } else {
+      toast.error(API_CONFIG.ERROR_MESSAGES.DEFAULT);
     }
 
-    toast.error(errorMessage);
     return Promise.reject(error);
   }
 );

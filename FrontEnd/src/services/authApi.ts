@@ -35,9 +35,12 @@ export const authApi = {
       credentials
     );
     
-    // Store tokens
-    localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
-    localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+    if (response.data.token && response.data.refreshToken) {
+      localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
+      localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+    } else {
+      throw new Error('Invalid response from server: Missing tokens');
+    }
     
     return response.data.user;
   },
@@ -48,9 +51,12 @@ export const authApi = {
       data
     );
     
-    // Store tokens
-    localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
-    localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+    if (response.data.token && response.data.refreshToken) {
+      localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
+      localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+    } else {
+      throw new Error('Invalid response from server: Missing tokens');
+    }
     
     return response.data.user;
   },
@@ -84,7 +90,15 @@ export const authApi = {
   },
 
   validateToken: async (): Promise<User> => {
-    const response = await httpClient.get<User>(API_CONFIG.ENDPOINTS.AUTH.VALIDATE);
-    return response.data;
+    const token = localStorage.getItem(API_CONFIG.TOKEN.KEY);
+    if (!token) {
+      throw new Error('No token found');
+    }
+    
+    const response = await httpClient.get<{ user: User }>(
+      API_CONFIG.ENDPOINTS.AUTH.VALIDATE
+    );
+    
+    return response.data.user;
   },
 };
