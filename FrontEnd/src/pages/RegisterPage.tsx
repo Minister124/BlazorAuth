@@ -1,20 +1,20 @@
 import { useNavigate } from 'react-router-dom';
-import { LoginForm } from '../components/auth/LoginForm';
+import RegisterForm from '../components/auth/RegisterForm';
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigate = useNavigate();
 
-  const handleLoginSuccess = () => {
+  const handleRegisterSuccess = () => {
     navigate('/users');
   };
 
   const handleToggleForm = () => {
-    navigate('/register');
+    navigate('/login');
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <LoginForm onSuccess={handleLoginSuccess} onToggle={handleToggleForm} />
+      <RegisterForm onSuccess={handleRegisterSuccess} onToggle={handleToggleForm} />
     </div>
   );
 }

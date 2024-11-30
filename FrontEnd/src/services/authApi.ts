@@ -60,32 +60,26 @@ export const authApi = {
     return response.data.user;
   },
 
-  register: async (data: Omit<RegisterRequest, 'role'>): Promise<User> => {
+  register: async (data: RegisterRequest): Promise<User> => {
     console.log('Sending registration request:', {
       url: API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      data: { ...data, password: '[REDACTED]', confirmPassword: '[REDACTED]' }
+      data: { ...data, password: '[REDACTED]' }
     });
-
-    const registerData = {
-      ...data,
-      role: 'User' // Add default role
-    };
 
     const response = await httpClient.post<AuthResponse>(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      registerData
+      data
     );
 
     console.log('Registration response:', {
-      user: response.data.user,
-      tokenReceived: !!response.data.token,
-      refreshTokenReceived: !!response.data.refreshToken
+      success: !!response.data,
+      user: response.data?.user,
+      tokenReceived: !!response.data?.token
     });
 
-    if (response.data.token && response.data.refreshToken) {
-      localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
-      localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
-      console.log('Tokens stored in localStorage');
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
     }
 
     return response.data.user;

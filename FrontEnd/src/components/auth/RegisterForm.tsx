@@ -5,9 +5,11 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../shared/Card';
+import { RegisterRequest } from '../../services/authApi';
 
 interface RegisterFormProps {
   onToggle: () => void;
+  onSuccess: () => void;
 }
 
 const passwordStrength = (password: string): { score: number; message: string; color: string } => {
@@ -32,25 +34,34 @@ const passwordStrength = (password: string): { score: number; message: string; c
   };
 };
 
-export function RegisterForm({ onToggle }: RegisterFormProps) {
-  const [formData, setFormData] = useState({
+export default function RegisterForm({ onToggle, onSuccess }: RegisterFormProps) {
+  const [formData, setFormData] = useState<RegisterRequest>({
     name: '',
-    email: '',
+    emailAddress: '',
     password: '',
+    confirmPassword: '',
+    role: 'User'
   });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await register(formData.email, formData.password, formData.name);
+      await register(formData);
       toast.success('Account created successfully!');
+      onSuccess();
       onToggle();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create account');
+      console.error('Registration error:', error);
+      toast.error('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -65,15 +76,15 @@ export function RegisterForm({ onToggle }: RegisterFormProps) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Create account</CardTitle>
+        <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
         <p className="text-center text-muted-foreground">
           Enter your information to create an account
         </p>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent>
           <Input
-            label="Full Name"
+            label="Name"
             type="text"
             placeholder="Enter your name"
             value={formData.name}
@@ -86,8 +97,8 @@ export function RegisterForm({ onToggle }: RegisterFormProps) {
             label="Email"
             type="email"
             placeholder="Enter your email"
-            value={formData.email}
-            onChange={(e) => updateField('email', e.target.value)}
+            value={formData.emailAddress}
+            onChange={(e) => updateField('emailAddress', e.target.value)}
             icon={<Mail className="w-4 h-4" />}
             required
           />
@@ -123,6 +134,16 @@ export function RegisterForm({ onToggle }: RegisterFormProps) {
             )}
           </div>
 
+          <Input
+            label="Confirm Password"
+            type="password"
+            placeholder="Confirm your password"
+            value={formData.confirmPassword}
+            onChange={(e) => updateField('confirmPassword', e.target.value)}
+            icon={<Lock className="w-4 h-4" />}
+            required
+          />
+
           <Button
             type="submit"
             className="w-full"
@@ -130,8 +151,8 @@ export function RegisterForm({ onToggle }: RegisterFormProps) {
           >
             Create Account
           </Button>
-        </form>
-      </CardContent>
+        </CardContent>
+      </form>
       <CardFooter>
         <p className="text-center text-sm text-muted-foreground w-full">
           Already have an account?{' '}

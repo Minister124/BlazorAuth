@@ -3,8 +3,12 @@ import { API_CONFIG } from '../config/api';
 import toast from 'react-hot-toast';
 
 interface ApiErrorResponse {
-  message: string;
+  title?: string;
+  status?: number;
   errors?: Record<string, string[]>;
+  message?: string;
+  type?: string;
+  traceId?: string;
 }
 
 const httpClient = axios.create({
@@ -43,45 +47,66 @@ httpClient.interceptors.response.use(
           localStorage.removeItem(API_CONFIG.TOKEN.KEY);
           localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
           window.location.href = '/login';
-          throw new Error('No refresh token available');
+          throw new Error('Session expired. Please login again.');
         }
 
         // Try to refresh the token
         const response = await axios.post<{ token: string }>(
           `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.REFRESH}`,
-          { refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
+          { refreshToken }
         );
 
         const newToken = response.data.token;
         localStorage.setItem(API_CONFIG.TOKEN.KEY, newToken);
 
-        // Retry the original request with the new token
+        // Retry the original request
         if (originalRequest) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
           originalRequest.headers['X-Retry'] = 'true';
           return axios(originalRequest);
         }
       } catch (refreshError) {
-        // If refresh token fails, redirect to login
         localStorage.removeItem(API_CONFIG.TOKEN.KEY);
         localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
         window.location.href = '/login';
+        toast.error('Session expired. Please login again.');
         return Promise.reject(refreshError);
       }
     }
 
-    // Handle other errors
-    if (error.response?.data?.message) {
-      toast.error(error.response.data.message);
-    } else if (error.response?.status === 403) {
-      toast.error(API_CONFIG.ERROR_MESSAGES.FORBIDDEN);
-    } else if (error.response?.status === 404) {
-      toast.error(API_CONFIG.ERROR_MESSAGES.NOT_FOUND);
-    } else if (!error.response) {
-      toast.error(API_CONFIG.ERROR_MESSAGES.NETWORK);
+    // Handle validation errors and other responses
+    if (error.response?.data) {
+      const errorData = error.response.data as ApiErrorResponse;
+      
+      // Handle validation errors
+      if (errorData.errors) {
+        Object.entries(errorData.errors).forEach(([field, messages]) => {
+          messages.forEach(message => {
+            toast.error(`${field}: ${message}`, {
+              duration: 5000,
+              style: {
+                borderRadius: '10px',
+                background: '#fff',
+                color: '#333',
+                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
+                padding: '16px',
+                maxWidth: '500px'
+              },
+            });
+          });
+        });
+      }
+      // Handle general error message
+      else if (errorData.title) {
+        toast.error(errorData.title);
+      }
+      else if (errorData.message) {
+        toast.error(errorData.message);
+      }
+    } else if (error.message === 'Network Error') {
+      toast.error('Unable to connect to the server. Please check your internet connection.');
     } else {
-      toast.error(API_CONFIG.ERROR_MESSAGES.DEFAULT);
+      toast.error('An unexpected error occurred. Please try again.');
     }
 
     return Promise.reject(error);

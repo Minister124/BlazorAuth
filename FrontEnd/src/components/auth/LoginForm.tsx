@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Github, Linkedin, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Github, Linkedin, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../shared/Button';
@@ -20,15 +20,17 @@ export function LoginForm({ onSuccess, onToggle }: LoginFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
     
+    setIsLoading(true);
     try {
       await login(email, password);
-      toast.success('Welcome back!');
       onSuccess();
     } catch (error) {
-      console.error('LoginForm error:', error);
-      toast.error(error instanceof Error ? error.message : 'Invalid credentials');
+      // Error will be handled by HTTP interceptor
     } finally {
       setIsLoading(false);
     }
@@ -48,92 +50,87 @@ export function LoginForm({ onSuccess, onToggle }: LoginFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            icon={<Mail className="w-4 h-4" />}
-            required
-          />
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+          </div>
 
-          <div className="relative">
-            <Input
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              icon={<Lock className="w-4 h-4" />}
-              required
-            />
-            <button
-              type="button"
-              onClick={togglePasswordVisibility}
-              className="absolute right-3 top-[34px] text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-            >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
-            </button>
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 pr-10"
+                placeholder="Enter your password"
+                required
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1 mt-2">
+              <p>Password requirements:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>At least 8 characters long</li>
+                <li>Must contain at least one uppercase letter</li>
+                <li>Must contain at least one lowercase letter</li>
+                <li>Must contain at least one number</li>
+                <li>Must contain at least one special character</li>
+              </ul>
+            </div>
           </div>
 
           <Button
             type="submit"
             className="w-full"
-            isLoading={isLoading}
+            disabled={isLoading}
           >
-            Sign In
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign in'
+            )}
           </Button>
         </form>
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="h-[1px] flex-1 bg-border"></div>
-          <span className="text-xs uppercase text-muted-foreground">
-            Or continue with
-          </span>
-          <div className="h-[1px] flex-1 bg-border"></div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            icon={<Github className="w-4 h-4" />}
-            className="bg-[#24292e] hover:bg-[#1a1e22] text-white border-[#24292e] 
-                     hover:border-[#1a1e22] transition-all duration-200
-                     dark:bg-[#333] dark:hover:bg-[#444] dark:border-[#444]
-                     flex items-center justify-center gap-2"
-          >
-            GitHub
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            icon={<Linkedin className="w-4 h-4" />}
-            className="bg-[#0A66C2] hover:bg-[#004182] text-white border-[#0A66C2] 
-                     hover:border-[#004182] transition-all duration-200
-                     dark:bg-[#0073b1] dark:hover:bg-[#005582] dark:border-[#0073b1]
-                     flex items-center justify-center gap-2"
-          >
-            LinkedIn
-          </Button>
-        </div>
       </CardContent>
       <CardFooter>
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <button
-            type="button"
-            onClick={onToggle}
-            className="underline hover:text-primary"
-          >
-            Sign up
-          </button>
-        </p>
+        <div className="flex flex-col items-center justify-center w-full gap-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Don't have an account?{' '}
+            <button
+              onClick={onToggle}
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            >
+              Sign up
+            </button>
+          </div>
+        </div>
       </CardFooter>
     </Card>
   );

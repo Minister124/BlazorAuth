@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { User, Role } from '../types/user';
 import { Department, CreateDepartmentInput, UpdateDepartmentInput, isDepartmentValid, isDepartment } from '../types/department';
-import { authApi } from '../services/authApi';
+import { authApi, RegisterRequest } from '../services/authApi';
 import toast from 'react-hot-toast';
 
 interface AuthState {
@@ -14,7 +14,7 @@ interface AuthState {
   isAuthenticated: boolean;
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   createUser: (userData: Partial<User>) => Promise<void>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
@@ -52,31 +52,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await authApi.login({ emailAddress: email, password });
       console.log('Login successful:', user);
       set({ user, isAuthenticated: true, isLoading: false });
-      toast.success('Login successful!');
-    } catch (error) {
-      console.error('Login failed:', error);
+      toast.success('Welcome back!');
+    } catch (error: any) {
       set({ isLoading: false });
-      toast.error('Login failed. Please check your credentials.');
+      // Error message will be handled by the HTTP client interceptor
     }
   },
 
-  register: async (email: string, password: string, name: string) => {
+  register: async (data: RegisterRequest) => {
     set({ isLoading: true });
     try {
-      console.log('Registration attempt:', { email, name });
-      const user = await authApi.register({
-        emailAddress: email,
-        password,
-        confirmPassword: password,
-        name,
-      });
-      console.log('Registration successful:', user);
+      const user = await authApi.register(data);
       set({ user, isAuthenticated: true, isLoading: false });
-      toast.success('Registration successful!');
+      toast.success('Welcome! Your account has been created successfully.');
     } catch (error) {
-      console.error('Registration failed:', error);
       set({ isLoading: false });
-      toast.error('Registration failed. Please try again.');
+      throw error;
     }
   },
 
