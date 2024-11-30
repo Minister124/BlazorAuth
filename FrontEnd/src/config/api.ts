@@ -1,13 +1,14 @@
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5238',
   FRONTEND_URL: import.meta.env.VITE_APP_URL || 'http://localhost:5173',
   ENDPOINTS: {
     AUTH: {
-      LOGIN: '/api/auth/login',
-      REGISTER: '/api/auth/register',
-      REFRESH: '/api/auth/refresh',
-      LOGOUT: '/api/auth/logout',
-      VALIDATE: '/api/auth/validate',
+      LOGIN: '/api/account/identity/login',
+      REGISTER: '/api/account/identity/create',
+      REFRESH: '/api/account/identity/refresh-token',
+      LOGOUT: '/api/account/identity/logout',
+      VALIDATE: '/api/account/identity/validate',
+      CREATE_ADMIN: '/api/account/identity/admin/create'
     },
     USERS: {
       LIST: '/api/users',

@@ -4,14 +4,16 @@ import { API_CONFIG } from '../config/api';
 
 // Types for API requests
 export interface LoginRequest {
-  email: string;
+  emailAddress: string;
   password: string;
 }
 
 export interface RegisterRequest {
-  email: string;
+  emailAddress: string;
   password: string;
+  confirmPassword: string;
   name: string;
+  role: string;
 }
 
 export interface CreateUserRequest {
@@ -30,35 +32,67 @@ export interface AuthResponse {
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<User> => {
+    console.log('Sending login request:', {
+      url: API_CONFIG.ENDPOINTS.AUTH.LOGIN,
+      credentials: { ...credentials, password: '[REDACTED]' }
+    });
+
     const response = await httpClient.post<AuthResponse>(
       API_CONFIG.ENDPOINTS.AUTH.LOGIN,
       credentials
     );
     
+    console.log('Login response:', {
+      user: response.data.user,
+      tokenReceived: !!response.data.token,
+      refreshTokenReceived: !!response.data.refreshToken
+    });
+    
     if (response.data.token && response.data.refreshToken) {
       localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
       localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+      console.log('Tokens stored in localStorage');
     } else {
+      console.error('Invalid response from server: Missing tokens');
       throw new Error('Invalid response from server: Missing tokens');
     }
     
     return response.data.user;
   },
 
-  register: async (data: RegisterRequest): Promise<User> => {
+  register: async (data: Omit<RegisterRequest, 'role'>): Promise<User> => {
+    console.log('Sending registration request:', {
+      url: API_CONFIG.ENDPOINTS.AUTH.REGISTER,
+      data: { ...data, password: '[REDACTED]', confirmPassword: '[REDACTED]' }
+    });
+
+    const registerData = {
+      ...data,
+      role: 'User' // Add default role
+    };
+
     const response = await httpClient.post<AuthResponse>(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      data
+      registerData
     );
-    
+
+    console.log('Registration response:', {
+      user: response.data.user,
+      tokenReceived: !!response.data.token,
+      refreshTokenReceived: !!response.data.refreshToken
+    });
+
     if (response.data.token && response.data.refreshToken) {
       localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
       localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
-    } else {
-      throw new Error('Invalid response from server: Missing tokens');
+      console.log('Tokens stored in localStorage');
     }
-    
+
     return response.data.user;
+  },
+
+  createAdmin: async (): Promise<void> => {
+    await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.CREATE_ADMIN);
   },
 
   createUser: async (data: CreateUserRequest): Promise<User> => {

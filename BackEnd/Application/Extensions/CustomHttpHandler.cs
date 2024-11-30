@@ -95,7 +95,7 @@ public class CustomHttpHandler : DelegatingHandler
             var response = await _accountService.RefreshTokenAsync(
                 new DTOs.Request.Account.RefreshTokenDTO() { Token = refresh }
             );
-            if (response == null || response.token == null)
+            if (response == null || string.IsNullOrEmpty(response.Token))
             {
                 await ClearBrowserStorage();
                 NavigateToLogin();
@@ -105,11 +105,11 @@ public class CustomHttpHandler : DelegatingHandler
             await _localstorageService.SetBrowserLocalStorageAsync(
                 new DTOs.Request.Account.LocalStorageDTO()
                 {
-                    RefreshToken = response!.refreshToken,
-                    Token = response.token,
+                    RefreshToken = response.RefreshToken,
+                    Token = response.Token,
                 }
             );
-            return response.token;
+            return response.Token;
         }
         catch
         {

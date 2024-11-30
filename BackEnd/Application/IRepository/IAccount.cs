@@ -19,6 +19,9 @@ namespace Application.IRepository
 
         Task<IEnumerable<GetRoleDTO>> GetRoleAsync();
 
-        Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync();   
+        Task<IEnumerable<GetUsersWithRolesResponseDTO>> GetUsersWithRolesResponseAsync();
+
+        Task<bool> InvalidateRefreshTokenAsync(string userId);
+        Task<UserDTO?> GetUserByIdAsync(string userId);
     }
 }

@@ -214,11 +214,80 @@ public class AccountService : IAccountService
 
     public async Task<LoginResponse> LoginAsync(LoginDTO model)
     {
-        return await PostRequestAsync<LoginDTO, LoginResponse>(
-            Constants.LoginRoute,
-            model,
-            isPrivate: false
-        ) ?? new LoginResponse(false, "Login failed.");
+        try
+        {
+            _logger.LogInformation("Processing login request for {Email}", model.EmailAddress);
+
+            var response = await PostRequestAsync<LoginDTO, LoginResponse>(
+                Constants.LoginRoute,
+                model,
+                isPrivate: false
+            );
+
+            if (response == null)
+            {
+                _logger.LogWarning("Login failed: Invalid credentials for {Email}", model.EmailAddress);
+                return new LoginResponse 
+                { 
+                    User = null!,
+                    Token = string.Empty,
+                    RefreshToken = string.Empty
+                };
+            }
+
+            _logger.LogInformation("Login successful for {Email}. Token generated.", model.EmailAddress);
+            
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during login for {Email}", model.EmailAddress);
+            return new LoginResponse
+            {
+                User = null!,
+                Token = string.Empty,
+                RefreshToken = string.Empty
+            };
+        }
+    }
+
+    public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
+    {
+        try
+        {
+            _logger.LogInformation("Processing refresh token request");
+
+            var response = await PostRequestAsync<RefreshTokenDTO, LoginResponse>(
+                Constants.RefreshTokenRoute,
+                model,
+                isPrivate: false
+            );
+
+            if (response == null)
+            {
+                _logger.LogWarning("Refresh token failed: Invalid token");
+                return new LoginResponse 
+                { 
+                    User = null!,
+                    Token = string.Empty,
+                    RefreshToken = string.Empty
+                };
+            }
+
+            _logger.LogInformation("Refresh token successful. New token generated.");
+            
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during refresh token");
+            return new LoginResponse
+            {
+                User = null!,
+                Token = string.Empty,
+                RefreshToken = string.Empty
+            };
+        }
     }
 
     private static string CheckResponseStatus(HttpResponseMessage response)
@@ -227,14 +296,5 @@ public class AccountService : IAccountService
             return $"Error Description:{Environment.NewLine}Status Code:{response.StatusCode}{Environment.NewLine}Reason Phrase: {response.ReasonPhrase}";
         else
             return null;
-    }
-
-    public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
-    {
-         return await PostRequestAsync<RefreshTokenDTO, LoginResponse>(
-            Constants.RefreshTokenRoute,
-            model,
-            isPrivate: false
-        ) ?? new LoginResponse(false, "Failed to refresh token.");
     }
 }

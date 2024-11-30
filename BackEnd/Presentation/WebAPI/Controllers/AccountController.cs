@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace WebAPI.Controllers
 {
@@ -14,24 +15,57 @@ namespace WebAPI.Controllers
     [ApiController]
     [EnableCors("AllowSpecificOrigins")]
     [Authorize]  // Require authentication by default
-    public class AccountController(IAccount account) : ControllerBase
+    public class AccountController(IAccount account, ILogger<AccountController> _logger) : ControllerBase
     {
         [AllowAnonymous]  // Allow anonymous access for registration
         [HttpPost("identity/create")]
         public async Task<ActionResult<GeneralResponse>> CreateAccount(CreateAccountDTO model)
         {
+            _logger.LogInformation("Registration attempt for user {Email}", model.EmailAddress);
+            
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for registration: {Errors}", 
+                    string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest("Model Cannot be Null");
-            return Ok(await account.CreateAccountAsync(model));
+            }
+
+            var result = await account.CreateAccountAsync(model);
+            if (result.flag)
+            {
+                _logger.LogInformation("Registration successful for user {Email}", model.EmailAddress);
+            }
+            else
+            {
+                _logger.LogWarning("Registration failed for user {Email}: {Message}", 
+                    model.EmailAddress, result.message);
+            }
+            return Ok(result);
         }
 
         [AllowAnonymous]  // Allow anonymous access for login
         [HttpPost("identity/login")]
         public async Task<ActionResult<LoginResponse>> Login(LoginDTO model)
         {
+            _logger.LogInformation("Login attempt for user {Email}", model.EmailAddress);
+            
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for login: {Errors}", 
+                    string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest("Model Cannot be Null");
-            return Ok(await account.LoginAsync(model));
+            }
+
+            var result = await account.LoginAsync(model);
+            if (result.Token != null)
+            {
+                _logger.LogInformation("Login successful for user {Email}", model.EmailAddress);
+            }
+            else
+            {
+                _logger.LogWarning("Login failed for user {Email}", model.EmailAddress);
+            }
+            return Ok(result);
         }
 
         [AllowAnonymous]  // Allow anonymous access for refresh token
@@ -75,5 +109,45 @@ namespace WebAPI.Controllers
         public async Task<ActionResult<GeneralResponse>> ChangeUserRole(
             ChangeUserRoleRequest model
         ) => Ok(await account.ChangeUserRoleRequestAsync(model));
+
+        [HttpPost("identity/logout")]
+        public async Task<ActionResult<GeneralResponse>> Logout()
+        {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest(new GeneralResponse(message: "User not found"));
+            }
+
+            // Clear refresh token from the database
+            await account.InvalidateRefreshTokenAsync(userId);
+
+            return Ok(new GeneralResponse(message: "Logged out successfully"));
+        }
+
+        [HttpGet("identity/validate")]
+        public async Task<ActionResult<UserDTO>> ValidateToken()
+        {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new GeneralResponse(message: "Invalid token"));
+            }
+
+            var user = await account.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized(new GeneralResponse(message: "User not found"));
+            }
+
+            return Ok(new UserDTO
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Name = user.Name,
+                Role = user.Role,
+                DepartmentId = user.DepartmentId
+            });
+        }
     }
 }

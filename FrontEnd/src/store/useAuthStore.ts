@@ -48,28 +48,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const user = await authApi.login({ email, password });
+      console.log('Login attempt:', { email });
+      const user = await authApi.login({ emailAddress: email, password });
+      console.log('Login successful:', user);
       set({ user, isAuthenticated: true, isLoading: false });
-      toast.success('Login successful');
+      toast.success('Login successful!');
     } catch (error) {
+      console.error('Login failed:', error);
       set({ isLoading: false });
-      toast.error('Invalid credentials');
-      throw error;
+      toast.error('Login failed. Please check your credentials.');
     }
   },
 
   register: async (email: string, password: string, name: string) => {
+    set({ isLoading: true });
     try {
-      set({ isLoading: true });
-      const user = await authApi.register({ email, password, name });
-      set({ user, isAuthenticated: true });
-      toast.success('Registration successful');
+      console.log('Registration attempt:', { email, name });
+      const user = await authApi.register({
+        emailAddress: email,
+        password,
+        confirmPassword: password,
+        name,
+      });
+      console.log('Registration successful:', user);
+      set({ user, isAuthenticated: true, isLoading: false });
+      toast.success('Registration successful!');
     } catch (error) {
       console.error('Registration failed:', error);
-      toast.error('Registration failed');
-      throw error;
-    } finally {
       set({ isLoading: false });
+      toast.error('Registration failed. Please try again.');
     }
   },
 

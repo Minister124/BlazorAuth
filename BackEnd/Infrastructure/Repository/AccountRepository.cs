@@ -326,129 +326,124 @@ namespace Infrastructure.Repository
             return List;
         }
 
+        private async Task<LoginResponse> GenerateLoginResponseAsync(ApplicationUser user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "User";
+
+            var userDto = new UserDTO
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                Name = user.UserName!,
+                Role = role,
+                DepartmentId = user.DepartmentId
+            };
+
+            var token = await GenerateTokenAsync(user);
+            var refreshToken = GenerateRefreshToken();
+
+            // Save refresh token
+            var refreshTokenEntity = new RefreshToken
+            {
+                UserID = user.Id,
+                Token = refreshToken
+            };
+            await _context.RefreshTokens.AddAsync(refreshTokenEntity);
+            await _context.SaveChangesAsync();
+
+            return new LoginResponse
+            {
+                User = userDto,
+                Token = token,
+                RefreshToken = refreshToken
+            };
+        }
+
         public async Task<LoginResponse> LoginAsync(LoginDTO model)
         {
             try
             {
-                // Log the start of a login attempt with either the EmailAddress or UserName provided by the user.
-                _logger.LogInformation(
-                    "Login attempt for user {EmailorUserName}",
-                    model.EmailAddress ?? model.UserName
-                );
-
-                // Attempt to find the user by email first, if not found, then by username.
-                var user =
-                    await FindUserByEmailAsync(model.EmailAddress)
-                    ?? await FindUserByUserNameAsync(model.UserName);
-
+                var user = await FindUserByEmailAsync(model.EmailAddress!);
                 if (user == null)
                 {
-                    // Log a warning if the user is not found.
-                    _logger.LogWarning(
-                        "Login Failed for {EmailorUserName}: User not found",
-                        model.EmailAddress ?? model.UserName
-                    );
-                    return new LoginResponse(false, "Invalid username or password");
+                    return new LoginResponse
+                    {
+                        User = null!,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
                 }
 
-                SignInResult signInResult;
-                try
+                var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+                if (!result.Succeeded)
                 {
-                    // Attempt to sign in the user using their password.
-                    signInResult = await _signInManager.CheckPasswordSignInAsync(
-                        user,
-                        model.Password,
-                        false // Lockout on failure is disabled.
-                    );
-                }
-                catch (Exception ex)
-                {
-                    // Log an error if an exception occurs during the sign-in process.
-                    _logger.LogError(
-                        ex,
-                        "Login failed for {EmailOrUserName}: Exception during sign-in",
-                        model.EmailAddress ?? model.UserName
-                    );
-                    return new LoginResponse(false, "Invalid Credentials");
+                    return new LoginResponse
+                    {
+                        User = null!,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
                 }
 
-                if (!signInResult.Succeeded)
-                {
-                    // Log a warning if the credentials are invalid.
-                    _logger.LogWarning(
-                        "Login failed for {EmailOrUserName}: Invalid credentials",
-                        model.EmailAddress ?? model.UserName
-                    );
-                    return new LoginResponse(false, "Invalid Credentials");
-                }
-
-                // Generate JWT and refresh tokens for the user.
-                var token = await GenerateTokenAsync(user);
-                var refreshToken = GenerateRefreshToken();
-
-                if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(refreshToken))
-                {
-                    // Log an error if token generation fails.
-                    _logger.LogError(
-                        "Token generation failed for {EmailOrUserName}",
-                        model.EmailAddress ?? model.UserName
-                    );
-                    return new LoginResponse(false, "Please contact the administrator");
-                }
-                else
-                {
-                    // Attempt to save the refresh token for the user.
-                    var saveResult = await SaveRefreshToken(user.Id, refreshToken);
-                    if (saveResult.flag)
-                        return new LoginResponse(
-                            true,
-                            $"{user.Name} successfully logged in",
-                            token,
-                            refreshToken
-                        );
-                    else
-                        return new LoginResponse();
-                }
+                return await GenerateLoginResponseAsync(user);
             }
             catch (Exception ex)
             {
-                // Log any unhandled exceptions during the login process.
-                _logger.LogError(
-                    ex,
-                    "An error occurred during the login process for {EmailOrUserName}",
-                    model.EmailAddress ?? model.UserName
-                );
-                return new LoginResponse(false, ex.Message);
+                _logger.LogError(ex, "Error during login");
+                return new LoginResponse
+                {
+                    User = null!,
+                    Token = string.Empty,
+                    RefreshToken = string.Empty
+                };
             }
         }
 
         public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenDTO model)
         {
-            // Look for the refresh token in the database.
-            var token = await _context.RefreshTokens.FirstOrDefaultAsync(x =>
-                x.Token == model.Token
-            );
-            if (token == null)
-                return new LoginResponse();
+            try
+            {
+                var refreshToken = await _context.RefreshTokens
+                    .FirstOrDefaultAsync(rt => rt.Token == model.Token);
 
-            // Retrieve the user associated with the refresh token.
-            var user = await _userManager.FindByIdAsync(token.UserID);
+                if (refreshToken == null)
+                {
+                    return new LoginResponse
+                    {
+                        User = null!,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
+                }
 
-            // Generate new JWT and refresh tokens.
-            string newToken = await GenerateTokenAsync(user);
-            string refreshToken = GenerateRefreshToken();
+                var user = await _userManager.FindByIdAsync(refreshToken.UserID!);
+                if (user == null)
+                {
+                    return new LoginResponse
+                    {
+                        User = null!,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
+                }
 
-            // Save the new refresh token in the database.
-            var saveResult = await SaveRefreshToken(user.Id, refreshToken);
-            if (saveResult.flag)
-                return new LoginResponse(
-                    true,
-                    $"{user.Name} successfully re-logged in",
-                    newToken,
-                    refreshToken
-                );
-            else
-                return new LoginResponse();
+                // Remove old refresh token
+                _context.RefreshTokens.Remove(refreshToken);
+                await _context.SaveChangesAsync();
+
+                return await GenerateLoginResponseAsync(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing token");
+                return new LoginResponse
+                {
+                    User = null!,
+                    Token = string.Empty,
+                    RefreshToken = string.Empty
+                };
+            }
         }
 
         public async Task<GeneralResponse> SaveRefreshToken(string userId, string token)
@@ -496,6 +491,58 @@ namespace Infrastructure.Repository
 
                 // Return a response indicating failure along with the exception message.
                 return new GeneralResponse(false, ex.Message);
+            }
+        }
+
+        public async Task<bool> InvalidateRefreshTokenAsync(string userId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                    return false;
+
+                // Clear refresh tokens for the user
+                var refreshTokens = await _context.RefreshTokens
+                    .Where(rt => rt.UserID == userId)
+                    .ToListAsync();
+
+                _context.RefreshTokens.RemoveRange(refreshTokens);
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invalidating refresh token for user {UserId}", userId);
+                return false;
+            }
+        }
+
+        public async Task<UserDTO?> GetUserByIdAsync(string userId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                    return null;
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var role = roles.FirstOrDefault() ?? "User";
+
+                return new UserDTO
+                {
+                    Id = user.Id,
+                    Email = user.Email!,
+                    Name = user.UserName!,
+                    Role = role,
+                    DepartmentId = user.DepartmentId
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by ID {UserId}", userId);
+                return null;
             }
         }
     }
