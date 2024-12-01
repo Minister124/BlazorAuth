@@ -1,125 +1,140 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 
-interface ApiErrorResponse {
-  title?: string;
-  status?: number;
-  errors?: Record<string, string[]>;
-  message?: string;
-  type?: string;
-  traceId?: string;
+// Enhanced error logging function
+function logAxiosError(error: any, context: string) {
+  console.error(`[HTTP Error - ${context}]`, {
+    message: error.message,
+    status: error.response?.status,
+    data: error.response?.data,
+    url: error.config?.url,
+    method: error.config?.method,
+    headers: error.config?.headers,
+    stackTrace: error.stack
+  });
 }
 
+// Create axios instance with base configuration
 const httpClient = axios.create({
   baseURL: API_CONFIG.BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-  },
-  withCredentials: true, // Enable sending cookies in cross-origin requests
+    'Accept': 'application/json'
+  }
 });
 
-// Request interceptor for API calls
+// Request interceptor for adding token
 httpClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem(API_CONFIG.TOKEN.KEY);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    try {
+      const token = localStorage.getItem(API_CONFIG.TOKEN.KEY);
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error in request interceptor:', error);
     }
     return config;
   },
-  (error: AxiosError) => {
+  (error) => {
+    logAxiosError(error, 'Request Interceptor');
     return Promise.reject(error);
   }
 );
 
-// Response interceptor for API calls
+// Response interceptor for token refresh and error handling
 httpClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError<ApiErrorResponse>) => {
+  (response) => response,
+  async (error) => {
     const originalRequest = error.config;
     
-    // Handle unauthorized errors (401)
-    if (error.response?.status === 401 && !originalRequest?.headers['X-Retry']) {
+    // Check if it's an unauthorized error and we haven't already tried to refresh
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
       try {
+        // Attempt to refresh token
+        const token = localStorage.getItem(API_CONFIG.TOKEN.KEY);
         const refreshToken = localStorage.getItem(API_CONFIG.TOKEN.REFRESH_KEY);
-        if (!refreshToken) {
-          localStorage.removeItem(API_CONFIG.TOKEN.KEY);
-          localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
-          window.location.href = '/login';
-          throw new Error('Session expired. Please login again.');
+
+        if (!token || !refreshToken) {
+          throw new Error('No tokens available');
         }
 
-        // Try to refresh the token
-        const response = await axios.post<{ token: string }>(
-          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.REFRESH}`,
-          { refreshToken }
+        // Try to refresh token
+        const refreshResponse = await httpClient.post(
+          API_CONFIG.ENDPOINTS.AUTH.REFRESH, 
+          { token }
         );
 
-        const newToken = response.data.token;
-        localStorage.setItem(API_CONFIG.TOKEN.KEY, newToken);
-
-        // Retry the original request
-        if (originalRequest) {
-          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-          originalRequest.headers['X-Retry'] = 'true';
-          return axios(originalRequest);
+        // If refresh successful, retry original request
+        if (refreshResponse.data.token) {
+          localStorage.setItem(API_CONFIG.TOKEN.KEY, refreshResponse.data.token);
+          
+          // Retry original request
+          return httpClient(originalRequest);
         }
       } catch (refreshError) {
-        localStorage.removeItem(API_CONFIG.TOKEN.KEY);
-        localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
+        // If refresh fails, log out user
+        try {
+          await useAuthStore.getState().logout();
+        } catch (logoutError) {
+          console.error('Logout failed', logoutError);
+        }
+
+        // Detailed error logging
+        logAxiosError(refreshError, 'Token Refresh');
+
+        toast.error('Your session has expired. Please log in again.', {
+          position: 'bottom-right',
+          duration: 4000,
+          style: {
+            background: '#e74c3c',
+            color: 'white',
+            borderRadius: '10px',
+          }
+        });
+
+        // Redirect to login
         window.location.href = '/login';
-        toast.error('Session expired. Please login again.');
         return Promise.reject(refreshError);
       }
     }
 
-    // Handle validation errors and other responses
-    if (error.response?.data) {
-      const errorData = error.response.data as ApiErrorResponse;
-      
-      // Handle validation errors
-      if (errorData.errors) {
-        Object.entries(errorData.errors).forEach(([field, messages]) => {
-          messages.forEach(message => {
-            toast.error(`${field}: ${message}`, {
-              duration: 5000,
-              style: {
-                borderRadius: '10px',
-                background: '#fff',
-                color: '#333',
-                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)',
-                padding: '16px',
-                maxWidth: '500px'
-              },
-            });
-          });
-        });
+    // Handle other errors
+    const errorMessage = error.response?.data 
+      ? (error.response.data as any).message || 'An error occurred'
+      : 'Network error';
+
+    // Detailed error logging
+    logAxiosError(error, 'Response Interceptor');
+
+    toast.error(errorMessage, {
+      position: 'bottom-right',
+      duration: 4000,
+      style: {
+        background: '#e74c3c',
+        color: 'white',
+        borderRadius: '10px',
       }
-      // Handle general error message
-      else if (errorData.title) {
-        toast.error(errorData.title);
-      }
-      else if (errorData.message) {
-        toast.error(errorData.message);
-      }
-    } else if (error.message === 'Network Error') {
-      toast.error('Unable to connect to the server. Please check your internet connection.');
-    } else {
-      toast.error('An unexpected error occurred. Please try again.');
-    }
+    });
 
     return Promise.reject(error);
   }
 );
 
-export default httpClient;
+// Helper function to replace URL parameters
+export function replaceUrlParams(url: string, params: Record<string, string>): string {
+  return Object.entries(params).reduce(
+    (acc, [key, value]) => acc.replace(`{${key}}`, value), 
+    url
+  );
+}
 
-// Helper function to handle API endpoints with parameters
-export const replaceUrlParams = (url: string, params: Record<string, string>) => {
-  let finalUrl = url;
-  Object.entries(params).forEach(([key, value]) => {
-    finalUrl = finalUrl.replace(`:${key}`, value);
-  });
-  return finalUrl;
-};
+export default httpClient;

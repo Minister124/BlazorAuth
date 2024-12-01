@@ -135,4 +135,24 @@ export const authApi = {
     
     return response.data.user;
   },
+  refreshToken: async (data: { token: string }): Promise<AuthResponse> => {
+    try {
+      const response = await httpClient.post<AuthResponse>(
+        API_CONFIG.ENDPOINTS.AUTH.REFRESH,
+        data
+      );
+
+      if (response.data.token && response.data.refreshToken) {
+        localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
+        localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
+        return response.data;
+      } else {
+        throw new Error('Invalid refresh token response');
+      }
+    } catch (error) {
+      localStorage.removeItem(API_CONFIG.TOKEN.KEY);
+      localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
+      throw error;
+    }
+  },
 };

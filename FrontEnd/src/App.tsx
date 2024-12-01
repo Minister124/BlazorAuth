@@ -15,6 +15,7 @@ import { UserCreationForm } from './components/UserCreationForm';
 import { Settings } from './components/shared/Settings';
 import { DepartmentAssignment } from './components/DepartmentAssignment';
 import { Analytics } from './components/Analytics';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -251,14 +252,70 @@ export default function App() {
                   transition={{ duration: 0.3 }}
                 >
                   <Routes>
-                    <Route path="/users" element={<UserList />} />
-                    <Route path="/users/new" element={<UserCreationForm />} />
-                    <Route path="/departments" element={<DepartmentManagement />} />
-                    <Route path="/departments/assign" element={<DepartmentAssignment />} />
-                    <Route path="/roles" element={<RoleManagement />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/profile" element={<ProfileForm user={user} />} />
-                    <Route path="/settings" element={<Settings />} />
+                    <Route 
+                      path="/users" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <UserList />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/users/new" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <UserCreationForm />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/departments" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <DepartmentManagement />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/departments/assign" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <DepartmentAssignment />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/roles" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <RoleManagement />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/analytics" 
+                      element={
+                        <ProtectedRoute requiredRoles={['Admin']}>
+                          <Analytics />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/profile" 
+                      element={
+                        <ProtectedRoute>
+                          <ProfileForm user={user} />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/settings" 
+                      element={
+                        <ProtectedRoute>
+                          <Settings />
+                        </ProtectedRoute>
+                      } 
+                    />
                     <Route path="*" element={<Navigate to="/users" replace />} />
                   </Routes>
                 </motion.div>

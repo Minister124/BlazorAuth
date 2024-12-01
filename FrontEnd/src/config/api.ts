@@ -1,22 +1,20 @@
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5238',
-  FRONTEND_URL: import.meta.env.VITE_APP_URL || 'http://localhost:5173',
+  BASE_URL: 'http://localhost:5238',
+  FRONTEND_URL: 'http://localhost:3000',
   ENDPOINTS: {
     AUTH: {
-      LOGIN: '/api/account/identity/login',
-      REGISTER: '/api/account/identity/create',
-      REFRESH: '/api/account/identity/refresh-token',
-      LOGOUT: '/api/account/identity/logout',
-      VALIDATE: '/api/account/identity/validate',
-      CREATE_ADMIN: '/api/account/identity/admin/create'
+      LOGIN: '/api/Account/identity/login',
+      REGISTER: '/api/Account/identity/create',
+      LOGOUT: '/api/Account/identity/logout',
+      VALIDATE: '/api/Account/identity/validate',
+      REFRESH: '/api/Account/identity/refresh-token',
+      CREATE_ADMIN: '/api/Account/identity/admin/create'
     },
     USERS: {
-      LIST: '/api/users',
-      CREATE: '/api/users',
-      GET: '/api/users/:id',
-      UPDATE: '/api/users/:id',
-      DELETE: '/api/users/:id',
-      PROFILE: '/api/users/profile',
+      CREATE: '/api/Account/users/create',
+      UPDATE: '/api/Account/users/update/{id}',
+      DELETE: '/api/Account/users/delete/{id}',
+      LIST: '/api/Account/users'
     },
     DEPARTMENTS: {
       LIST: '/api/departments',
@@ -38,6 +36,7 @@ export const API_CONFIG = {
   TOKEN: {
     KEY: 'auth_token',
     REFRESH_KEY: 'refresh_token',
+    EXPIRATION: 2 * 24 * 60 * 60 * 1000 // 2 days in milliseconds
   },
   ERROR_MESSAGES: {
     DEFAULT: 'An error occurred. Please try again.',

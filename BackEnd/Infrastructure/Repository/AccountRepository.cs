@@ -176,6 +176,12 @@ namespace Infrastructure.Repository
                     model.Role = "Admin";
                     _logger.LogInformation("First user detected. Assigning Admin role.");
                 }
+                else if (string.IsNullOrEmpty(model.Role))
+                {
+                    // Default to User role if no role is specified
+                    model.Role = "User";
+                    _logger.LogWarning("No role specified. Defaulting to User role.");
+                }
 
                 // Check if the email is already in use.
                 if (await FindUserByEmailAsync(model.EmailAddress) != null)
@@ -199,32 +205,26 @@ namespace Infrastructure.Repository
 
                 if (!result.Succeeded)
                 {
-                    // Log any errors during user creation
-                    var errors = result.Errors.Select(e => e.Description);
-                    _logger.LogError("User creation failed: {Errors}", string.Join(", ", errors));
-                    return new GeneralResponse(false, "Failed to create user account");
+                    return new GeneralResponse(false, result.Errors.FirstOrDefault()?.Description ?? "User creation failed");
                 }
 
-                // Ensure the role exists before assigning
+                // Ensure the role exists
                 if (!await _roleManager.RoleExistsAsync(model.Role))
                 {
                     await _roleManager.CreateAsync(new IdentityRole(model.Role));
                 }
 
-                // Assign the user to the specified role.
+                // Assign the role to the user
                 var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
 
                 if (!roleResult.Succeeded)
                 {
-                    // Log any errors during role assignment
-                    var roleErrors = roleResult.Errors.Select(e => e.Description);
-                    _logger.LogError("Role assignment failed: {Errors}", string.Join(", ", roleErrors));
-                    return new GeneralResponse(false, "Failed to assign user role");
+                    // If role assignment fails, log the error
+                    _logger.LogError($"Failed to assign role {model.Role} to user {user.UserName}");
+                    return new GeneralResponse(false, $"Failed to assign role {model.Role}");
                 }
 
-                _logger.LogInformation("User {UserName} created with role {Role}", user.UserName, model.Role);
-
-                return new GeneralResponse(true, $"Account Created Successfully with {model.Role} role");
+                return new GeneralResponse(true, $"Account created successfully with role {model.Role}");
             }
             catch (Exception ex)
             {
