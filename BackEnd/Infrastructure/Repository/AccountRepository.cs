@@ -168,6 +168,15 @@ namespace Infrastructure.Repository
         {
             try
             {
+                // Check if this is the first user
+                var userCount = await _userManager.Users.CountAsync();
+                if (userCount == 0)
+                {
+                    // Automatically assign admin role to the first user
+                    model.Role = "Admin";
+                    _logger.LogInformation("First user detected. Assigning Admin role.");
+                }
+
                 // Check if the email is already in use.
                 if (await FindUserByEmailAsync(model.EmailAddress) != null)
                     return new GeneralResponse(false, $"{model.EmailAddress} already exists.");
@@ -188,22 +197,39 @@ namespace Infrastructure.Repository
                 // Attempt to create the user in the system.
                 var result = await _userManager.CreateAsync(user, model.Password);
 
-                // Convert the IdentityResult to a GeneralResponse for success message.
-                result.ToGeneralResponse($"Account Created Successfully");
+                if (!result.Succeeded)
+                {
+                    // Log any errors during user creation
+                    var errors = result.Errors.Select(e => e.Description);
+                    _logger.LogError("User creation failed: {Errors}", string.Join(", ", errors));
+                    return new GeneralResponse(false, "Failed to create user account");
+                }
+
+                // Ensure the role exists before assigning
+                if (!await _roleManager.RoleExistsAsync(model.Role))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(model.Role));
+                }
 
                 // Assign the user to the specified role.
-                var (flag, message) = await AssignUserToRole(
-                    user,
-                    new IdentityRole() { Name = model.Role }
-                );
+                var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
 
-                // Return the result of role assignment.
-                return new GeneralResponse(flag, message);
+                if (!roleResult.Succeeded)
+                {
+                    // Log any errors during role assignment
+                    var roleErrors = roleResult.Errors.Select(e => e.Description);
+                    _logger.LogError("Role assignment failed: {Errors}", string.Join(", ", roleErrors));
+                    return new GeneralResponse(false, "Failed to assign user role");
+                }
+
+                _logger.LogInformation("User {UserName} created with role {Role}", user.UserName, model.Role);
+
+                return new GeneralResponse(true, $"Account Created Successfully with {model.Role} role");
             }
             catch (Exception ex)
             {
-                // Handle any exceptions and return a failure response with the exception message.
-                return new GeneralResponse(false, ex.Message);
+                _logger.LogError(ex, "Error during account creation for {Email}", model.EmailAddress);
+                return new GeneralResponse(false, $"An error occurred: {ex.Message}");
             }
         }
 
