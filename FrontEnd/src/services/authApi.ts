@@ -12,6 +12,7 @@ export interface RegisterRequest {
   emailAddress: string;
   password: string;
   confirmPassword: string;
+  userName: string;
   name: string;
   role: string;
 }
@@ -61,23 +62,28 @@ export const authApi = {
   },
 
   register: async (data: RegisterRequest): Promise<User> => {
-    console.log('Sending registration request:', {
+    console.log('Sending register request:', {
       url: API_CONFIG.ENDPOINTS.AUTH.REGISTER,
       data: { ...data, password: '[REDACTED]' }
     });
 
+    const requestData = {
+      ...data,
+      name: data.userName
+    };
+
     const response = await httpClient.post<AuthResponse>(
       API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      data
+      requestData
     );
 
-    console.log('Registration response:', {
-      success: !!response.data,
-      user: response.data?.user,
-      tokenReceived: !!response.data?.token
+    console.log('Register response:', {
+      user: response.data.user,
+      tokenReceived: !!response.data.token,
+      refreshTokenReceived: !!response.data.refreshToken
     });
 
-    if (response.data.token) {
+    if (response.data.token && response.data.refreshToken) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('refreshToken', response.data.refreshToken);
     }

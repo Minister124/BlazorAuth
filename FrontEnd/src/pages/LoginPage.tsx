@@ -8,13 +8,9 @@ export function LoginPage() {
     navigate('/users');
   };
 
-  const handleToggleForm = () => {
-    navigate('/register');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <LoginForm onSuccess={handleLoginSuccess} onToggle={handleToggleForm} />
+      <LoginForm onSuccess={handleLoginSuccess} />
     </div>
   );
 }

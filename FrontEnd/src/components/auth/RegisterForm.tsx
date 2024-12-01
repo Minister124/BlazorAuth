@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -6,6 +6,8 @@ import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../shared/Card';
 import { RegisterRequest } from '../../services/authApi';
+import httpClient from '../../services/httpClient';
+import { API_CONFIG } from '../../config/api';
 
 interface RegisterFormProps {
   onToggle: () => void;
@@ -36,6 +38,7 @@ const passwordStrength = (password: string): { score: number; message: string; c
 
 export default function RegisterForm({ onToggle, onSuccess }: RegisterFormProps) {
   const [formData, setFormData] = useState<RegisterRequest>({
+    userName: '',
     name: '',
     emailAddress: '',
     password: '',
@@ -44,6 +47,26 @@ export default function RegisterForm({ onToggle, onSuccess }: RegisterFormProps)
   });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuthStore();
+
+  useEffect(() => {
+    // Check if there are any existing users
+    const checkExistingUsers = async () => {
+      try {
+        const response = await httpClient.get(API_CONFIG.ENDPOINTS.USERS.LIST);
+        const users = response.data;
+        if (!users || users.length === 0) {
+          // If no users exist, set role to Admin
+          setFormData(prev => ({ ...prev, role: 'Admin' }));
+          toast.success('You will be registered as the first Admin user.');
+        }
+      } catch (error) {
+        // If we can't check users (e.g., endpoint not accessible), continue with default User role
+        console.log('Could not check existing users, defaulting to User role');
+      }
+    };
+
+    checkExistingUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +78,12 @@ export default function RegisterForm({ onToggle, onSuccess }: RegisterFormProps)
 
     setIsLoading(true);
     try {
-      await register(formData);
-      toast.success('Account created successfully!');
+      const updatedData = {
+        ...formData,
+        name: formData.userName // Ensure name is set to userName
+      };
+      await register(updatedData);
+      toast.success('Registration successful!');
       onSuccess();
       onToggle();
     } catch (error) {
@@ -83,15 +110,17 @@ export default function RegisterForm({ onToggle, onSuccess }: RegisterFormProps)
       </CardHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <CardContent>
-          <Input
-            label="Name"
-            type="text"
-            placeholder="Enter your name"
-            value={formData.name}
-            onChange={(e) => updateField('name', e.target.value)}
-            icon={<User className="w-4 h-4" />}
-            required
-          />
+          <div className="space-y-2">
+            <Input
+              type="text"
+              id="userName"
+              value={formData.userName}
+              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+              placeholder="Full Name"
+              icon={<User className="w-5 h-5" />}
+              required
+            />
+          </div>
 
           <Input
             label="Email"

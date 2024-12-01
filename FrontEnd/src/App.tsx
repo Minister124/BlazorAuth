@@ -8,6 +8,7 @@ import UserList from './components/UserList';
 import { ProfileForm } from './components/profile/ProfileForm';
 import { useAuthStore } from './store/useAuthStore';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { DepartmentManagement } from './components/DepartmentManagement';
 import { RoleManagement } from './components/RoleManagement';
 import { UserCreationForm } from './components/UserCreationForm';
@@ -116,6 +117,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
