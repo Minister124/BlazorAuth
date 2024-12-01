@@ -93,7 +93,7 @@ namespace Infrastructure.Repository
                     issuer: _configuration["Jwt:Issuer"],
                     audience: _configuration["Jwt:Audience"],
                     claims: userClaims,
-                    expires: DateTime.UtcNow.AddMinutes(30),
+                    expires: DateTime.UtcNow.AddDays(2),
                     signingCredentials: credential
                 );
                 return new JwtSecurityTokenHandler().WriteToken(token);
