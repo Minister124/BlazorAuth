@@ -1,6 +1,4 @@
 {
-  "name": "WASMCRUD",
-  "version": "1.0.0",
   "scripts": {
     "install": "cd FrontEnd && npm install",
     "ui": "cd frontend && npm run dev"
