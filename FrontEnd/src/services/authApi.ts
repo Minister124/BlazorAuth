@@ -1,8 +1,8 @@
-import { User } from '../types/user';
-import httpClient, { replaceUrlParams } from './httpClient';
+import { User, Role } from '../types/user';
 import { API_CONFIG } from '../config/api';
+import { mockUsers, mockRoles, generateMockToken } from '../mocks/mockData';
 
-// Types for API requests
+// Recreate the types here to avoid import issues
 export interface LoginRequest {
   emailAddress: string;
   password: string;
@@ -11,18 +11,9 @@ export interface LoginRequest {
 export interface RegisterRequest {
   emailAddress: string;
   password: string;
-  confirmPassword: string;
-  userName: string;
-  name: string;
-  role: string;
-}
-
-export interface CreateUserRequest {
-  email: string;
-  password?: string;
-  name: string;
-  roleId: string;
-  departmentId: string;
+  confirmPassword?: string;
+  name?: string;
+  role?: Role;
 }
 
 export interface AuthResponse {
@@ -33,94 +24,60 @@ export interface AuthResponse {
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<User> => {
-    console.log('Sending login request:', {
-      url: API_CONFIG.ENDPOINTS.AUTH.LOGIN,
-      credentials: { ...credentials, password: '[REDACTED]' }
+    console.log('Mock login request:', { 
+      email: credentials.emailAddress, 
+      password: '[REDACTED]' 
     });
 
-    const response = await httpClient.post<AuthResponse>(
-      API_CONFIG.ENDPOINTS.AUTH.LOGIN,
-      credentials
+    const user = mockUsers.find(u => 
+      u.email.toLowerCase() === credentials.emailAddress.toLowerCase() && 
+      u.hashedPassword === credentials.password
     );
-    
-    console.log('Login response:', {
-      user: response.data.user,
-      tokenReceived: !!response.data.token,
-      refreshTokenReceived: !!response.data.refreshToken
-    });
-    
-    if (response.data.token && response.data.refreshToken) {
-      localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
-      localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
-      console.log('Tokens stored in localStorage');
-    } else {
-      console.error('Invalid response from server: Missing tokens');
-      throw new Error('Invalid response from server: Missing tokens');
+
+    if (!user) {
+      throw new Error('Invalid credentials');
     }
-    
-    return response.data.user;
+
+    const { token, refreshToken } = generateMockToken();
+    localStorage.setItem(API_CONFIG.TOKEN.KEY, token);
+    localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, refreshToken);
+
+    console.log('Mock login successful');
+    return user;
   },
 
   register: async (data: RegisterRequest): Promise<User> => {
-    console.log('Sending register request:', {
-      url: API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      data: { ...data, password: '[REDACTED]' }
+    console.log('Mock register request:', { 
+      email: data.emailAddress 
     });
 
-    const requestData = {
-      ...data,
-      name: data.userName
-    };
-
-    const response = await httpClient.post<AuthResponse>(
-      API_CONFIG.ENDPOINTS.AUTH.REGISTER,
-      requestData
-    );
-
-    console.log('Register response:', {
-      user: response.data.user,
-      tokenReceived: !!response.data.token,
-      refreshTokenReceived: !!response.data.refreshToken
-    });
-
-    if (response.data.token && response.data.refreshToken) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
+    if (mockUsers.some(u => u.email.toLowerCase() === data.emailAddress.toLowerCase())) {
+      throw new Error('Email already exists');
     }
 
-    return response.data.user;
-  },
+    const newUser: User = {
+      id: (mockUsers.length + 1).toString(),
+      name: data.name || 'New User',
+      email: data.emailAddress,
+      role: data.role || mockRoles[1],
+      avatar: 'https://example.com/default-avatar.png',
+      createdAt: new Date(),
+      departmentId: '2',
+      status: 'active',
+      hashedPassword: data.password
+    };
 
-  createAdmin: async (): Promise<void> => {
-    await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.CREATE_ADMIN);
-  },
+    const { token, refreshToken } = generateMockToken();
+    localStorage.setItem(API_CONFIG.TOKEN.KEY, token);
+    localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, refreshToken);
 
-  createUser: async (data: CreateUserRequest): Promise<User> => {
-    const response = await httpClient.post<User>(
-      API_CONFIG.ENDPOINTS.USERS.CREATE,
-      data
-    );
-    return response.data;
-  },
-
-  updateUser: async (userId: string, data: Partial<User>): Promise<User> => {
-    const url = replaceUrlParams(API_CONFIG.ENDPOINTS.USERS.UPDATE, { id: userId });
-    const response = await httpClient.put<User>(url, data);
-    return response.data;
-  },
-
-  deleteUser: async (userId: string): Promise<void> => {
-    const url = replaceUrlParams(API_CONFIG.ENDPOINTS.USERS.DELETE, { id: userId });
-    await httpClient.delete(url);
+    console.log('Mock registration successful');
+    return newUser;
   },
 
   logout: async (): Promise<void> => {
-    try {
-      await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
-    } finally {
-      localStorage.removeItem(API_CONFIG.TOKEN.KEY);
-      localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
-    }
+    localStorage.removeItem(API_CONFIG.TOKEN.KEY);
+    localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
   },
 
   validateToken: async (): Promise<User> => {
@@ -128,31 +85,43 @@ export const authApi = {
     if (!token) {
       throw new Error('No token found');
     }
-    
-    const response = await httpClient.get<{ user: User }>(
-      API_CONFIG.ENDPOINTS.AUTH.VALIDATE
-    );
-    
-    return response.data.user;
+    // Return the first user (admin) for demo purposes
+    return mockUsers[0];
   },
-  refreshToken: async (data: { token: string }): Promise<AuthResponse> => {
-    try {
-      const response = await httpClient.post<AuthResponse>(
-        API_CONFIG.ENDPOINTS.AUTH.REFRESH,
-        data
-      );
 
-      if (response.data.token && response.data.refreshToken) {
-        localStorage.setItem(API_CONFIG.TOKEN.KEY, response.data.token);
-        localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, response.data.refreshToken);
-        return response.data;
-      } else {
-        throw new Error('Invalid refresh token response');
-      }
-    } catch (error) {
-      localStorage.removeItem(API_CONFIG.TOKEN.KEY);
-      localStorage.removeItem(API_CONFIG.TOKEN.REFRESH_KEY);
-      throw error;
-    }
+  refreshToken: async (): Promise<AuthResponse> => {
+    const { token, refreshToken } = generateMockToken();
+    localStorage.setItem(API_CONFIG.TOKEN.KEY, token);
+    localStorage.setItem(API_CONFIG.TOKEN.REFRESH_KEY, refreshToken);
+    return { 
+      user: mockUsers[0], 
+      token, 
+      refreshToken 
+    };
   },
+
+  createUser: async (userData: Partial<User>): Promise<User> => {
+    const newUser: User = {
+      id: (mockUsers.length + 1).toString(),
+      name: userData.name || 'New User',
+      email: userData.email || '',
+      role: userData.role || mockRoles[1],
+      avatar: userData.avatar || 'https://example.com/default-avatar.png',
+      createdAt: new Date(),
+      departmentId: userData.departmentId || '2',
+      status: 'active',
+      hashedPassword: 'MockPass123!' // Generate a mock password
+    };
+    return newUser;
+  },
+
+  deleteUser: async (userId: string): Promise<void> => {
+    // Simulate user deletion
+    console.log(`Mock delete user with ID: ${userId}`);
+  },
+
+  createAdmin: async (): Promise<void> => {
+    // Simulate admin creation
+    console.log('Mock create admin');
+  }
 };
